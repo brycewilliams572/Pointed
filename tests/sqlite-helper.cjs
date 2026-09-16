@@ -20,7 +20,10 @@ function connection(filename = ':memory:') {
   return {
     native,
     async execAsync(sql) { native.exec(sql); },
-    async runAsync(sql, ...args) { return native.prepare(sql).run(...args); },
+    async runAsync(sql, ...args) {
+      const result = native.prepare(sql).run(...args);
+      return { changes: Number(result.changes), lastInsertRowId: Number(result.lastInsertRowid) };
+    },
     async getFirstAsync(sql, ...args) { return native.prepare(sql).get(...args) ?? null; },
     async getAllAsync(sql, ...args) { return native.prepare(sql).all(...args); },
     async withTransactionAsync(work) {

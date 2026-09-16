@@ -22,9 +22,14 @@ type GameContextValue = {
   refreshGames: () => Promise<void>;
   createGame: (draft: Pick<Game, 'name' | 'players'>) => Promise<string | null>;
   openGame: (id: string) => Promise<boolean>;
-  changeScore: (playerId: string, amount: number, method?: ScoreChangeMethod) => Promise<boolean>;
+  changeScore: (playerId: string, amount: number, method?: ScoreChangeMethod, expectedScore?: number) => Promise<boolean>;
   setLayout: (layout: ScoreboardLayout) => Promise<void>;
   undo: () => Promise<boolean>;
+  redo: () => Promise<boolean>;
+  restoreHistory: (eventId: number) => Promise<boolean>;
+  deleteGame: (id: string) => Promise<boolean>;
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -64,7 +69,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const openGame = useCallback(async (id: string) => {
     const version = ++selectionVersion.current;
     selectedId.current = id;
-    setSnapshot(null);
+    setSnapshot((current) => current?.game.id === id ? current : null);
     setLoadingGame(true);
     setScoreError(null);
     try {
@@ -117,30 +122,59 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const game = snapshot?.game ?? null;
-  const changeScore = useCallback(async (playerId: string, amount: number, method: ScoreChangeMethod = 'preset') => {
+  const changeScore = useCallback(async (playerId: string, amount: number, method: ScoreChangeMethod = 'preset', expectedScore?: number) => {
     if (!game) return false;
-    return mutate(game.id, (repository) => new ScoreService(repository).changeScore(game.id, playerId, amount, method, allowNegativeScores));
+    return mutate(game.id, (repository) => new ScoreService(repository).changeScore(game.id, playerId, amount, method, allowNegativeScores, expectedScore));
   }, [game, allowNegativeScores, mutate]);
 
   const setLayout = useCallback(async (layout: ScoreboardLayout) => {
     if (game) await mutate(game.id, (repository) => repository.setLayout(game.id, layout));
   }, [game, mutate]);
 
-  const undo = useCallback(async () => {
+  const historyAction = useCallback(async (action: 'undo' | 'redo' | 'restore', eventId?: number) => {
     if (!game || undoInFlight.current) return false;
     undoInFlight.current = true;
     try {
-      return await mutate(game.id, (repository) => new ScoreService(repository).undo(game.id));
+      return await mutate(game.id, (repository) => {
+        const service = new ScoreService(repository);
+        return action === 'restore' ? service.restoreHistory(game.id, eventId!) : service[action](game.id);
+      });
     } finally {
       undoInFlight.current = false;
     }
   }, [game, mutate]);
 
+  const undo = useCallback(() => historyAction('undo'), [historyAction]);
+  const redo = useCallback(() => historyAction('redo'), [historyAction]);
+  const restoreHistory = useCallback((eventId: number) => historyAction('restore', eventId), [historyAction]);
+  const deleteGame = useCallback(async (id: string) => {
+    setPendingCount((count) => count + 1);
+    setGamesError(null);
+    try {
+      await (await getGameRepository()).deleteGame(id);
+      if (selectedId.current === id) {
+        selectionVersion.current++;
+        selectedId.current = null;
+        setSnapshot(null);
+        setScoreError(null);
+        setLoadingGame(false);
+      }
+      setActiveGames((games) => games.filter((item) => item.id !== id));
+      return true;
+    } catch (error) {
+      setGamesError(messageFor(error, 'The game could not be deleted. Please try again.'));
+      return false;
+    } finally {
+      setPendingCount((count) => count - 1);
+    }
+  }, []);
+
   return (
     <GameContext.Provider value={{
       game, events: snapshot?.events ?? [], activeGames, gamesLoading, gamesError,
       loadingGame, saving: pendingCount > 0, scoreError, layout: game?.layout ?? 'grid',
-      refreshGames, createGame, openGame, changeScore, setLayout, undo,
+      refreshGames, createGame, openGame, changeScore, setLayout, undo, redo, restoreHistory, deleteGame,
+      canUndo: snapshot?.canUndo ?? false, canRedo: snapshot?.canRedo ?? false,
     }}>
       {children}
     </GameContext.Provider>

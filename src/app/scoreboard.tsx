@@ -3,6 +3,8 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import type { Player } from '@/types/game';
+import { UndoRedoControls } from '@/components/undo-redo-controls';
 import { PlayerCard } from '@/components/player-card';
 import { ScoreEntryModal } from '@/components/score-entry-modal';
 import { useGame } from '@/context/game-context';
@@ -10,16 +12,14 @@ import { useTheme } from '@/hooks/use-theme';
 import { getGridColumns } from '@/utils/scoreboard-layout';
 
 export default function ScoreboardScreen() {
-  const { game: loadedGame, events, changeScore, scoreError, layout, setLayout, openGame, loadingGame, saving, undo } = useGame();
+  const { game: loadedGame, canUndo, canRedo, redo, changeScore, scoreError, layout, setLayout, openGame, loadingGame, saving, undo } = useGame();
   const { gameId } = useLocalSearchParams<{ gameId?: string }>();
   const game = !gameId || loadedGame?.id === gameId ? loadedGame : null;
-  const canUndo = events.some((event) => event.type !== 'UNDO' && event.undoneAt === null);
   const theme = useTheme();
   const router = useRouter();
   const { fontScale } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
-  const [entry, setEntry] = useState<{ playerId: string; method: 'manual' | 'set' } | null>(null);
-  const entryPlayer = game?.players.find((player) => player.id === entry?.playerId);
+  const [entry, setEntry] = useState<Player | null>(null);
   useFocusEffect(useCallback(() => { if (gameId) void openGame(gameId); }, [gameId, openGame]));
   useEffect(() => {
     if (scoreError) AccessibilityInfo.announceForAccessibility(scoreError);
@@ -39,8 +39,13 @@ export default function ScoreboardScreen() {
           <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
             {game.name ?? 'Your game'}
           </Text>
-          <View style={styles.controls}>
-            <Text style={[styles.message, { color: theme.textSecondary }]}>{game.players.length} players</Text>
+          <View style={styles.actionRow}>
+            <UndoRedoControls canUndo={canUndo} canRedo={canRedo} busy={saving || loadingGame} undo={undo} redo={redo} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Score History" onPress={() => router.push({ pathname: '/history', params: { gameId: game.id } })} style={[styles.modeButton, { backgroundColor: theme.backgroundElement }]}>
+              <Text style={[styles.label, { color: theme.text }]}>History</Text>
+            </Pressable>
+          </View>
+          <View style={[styles.controls, { backgroundColor: theme.backgroundElement }]}>
             {(['grid', 'list'] as const).map((mode) => (
               <Pressable
                 key={mode}
@@ -58,14 +63,8 @@ export default function ScoreboardScreen() {
                 </Text>
               </Pressable>
             ))}
-            <Pressable accessibilityRole="button" accessibilityLabel="Score History" onPress={() => router.push({ pathname: '/history', params: { gameId: game.id } })} style={[styles.modeButton, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.label, { color: theme.text }]}>History</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Undo latest score change" accessibilityState={{ disabled: !canUndo || saving }} disabled={!canUndo || saving} onPress={() => void undo()} style={[styles.modeButton, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.label, { color: canUndo && !saving ? theme.text : theme.textSecondary }]}>Undo</Text>
-            </Pressable>
           </View>
-          {saving ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>Savingâ€¦</Text> : null}
+          <Text numberOfLines={1} accessibilityLiveRegion="polite" style={[styles.status, { color: theme.textSecondary }]}>{saving ? 'Saving...' : loadingGame ? 'Loading...' : 'Tap a player to score'}</Text>
           {scoreError ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{scoreError}</Text> : null}
         </View>
       ) : null}
@@ -75,14 +74,14 @@ export default function ScoreboardScreen() {
             <View style={styles.cards}>
               {game.players.map((player) => (
                 <View key={player.id} style={{ width: cardWidth ?? '100%' }}>
-                  <PlayerCard player={player} layout={layout} onScoreChange={changeScore} onScoreEntry={(playerId, method) => setEntry({ playerId, method })} />
+                  <PlayerCard player={player} layout={layout} onPress={setEntry} disabled={saving || loadingGame} />
                 </View>
               ))}
             </View>
           ) : (
             <>
               <Text style={[styles.message, { color: theme.text }]}>
-                {loadingGame ? 'Loading gameâ€¦' : scoreError ?? 'Choose a saved game from Home or create a new game.'}
+                {loadingGame ? 'Loading game...' : scoreError ?? 'Choose a saved game from Home or create a new game.'}
               </Text>
               {!loadingGame && gameId ? <Pressable accessibilityRole="button" accessibilityLabel="Retry loading game" onPress={() => void openGame(gameId)} style={styles.button}><Text style={[styles.label, { color: theme.text }]}>Try again</Text></Pressable> : null}
               <Pressable
@@ -96,8 +95,8 @@ export default function ScoreboardScreen() {
           )}
         </View>
       </ScrollView>
-      {entry && entryPlayer ? (
-        <ScoreEntryModal key={`${entryPlayer.id}-${entry.method}`} player={entryPlayer} method={entry.method} onSubmit={changeScore} onClose={() => setEntry(null)} />
+      {entry && game?.players.some((player) => player.id === entry.id) ? (
+        <ScoreEntryModal key={entry.id} player={entry} onSubmit={changeScore} submitError={scoreError} onClose={() => setEntry(null)} />
       ) : null}
     </SafeAreaView>
   );
@@ -106,7 +105,9 @@ export default function ScoreboardScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   toolbar: { width: '100%', maxWidth: 1200, alignSelf: 'center', padding: 16, gap: 12 },
-  controls: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
+  status: { fontSize: 14, lineHeight: 20, minHeight: 20 },
+  controls: { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 4, padding: 4, borderRadius: 16 },
   content: { padding: 16, paddingTop: 0 },
   list: { width: '100%', maxWidth: 1168, alignSelf: 'center', gap: 16 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'stretch' },

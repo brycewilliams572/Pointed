@@ -119,7 +119,7 @@ test('failed migration is atomic and newer databases are refused', async () => {
     assert.equal(await db.getFirstAsync("SELECT name FROM sqlite_master WHERE name = 'games'"), null);
     db.execAsync = original;
     await migrateDatabase(db);
-    await db.execAsync('PRAGMA user_version = 2');
+    await db.execAsync('PRAGMA user_version = 3');
     await assert.rejects(migrateDatabase(db), /newer version/);
   } finally { db.native.close(); }
 });

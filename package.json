@@ -42,7 +42,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/milestone-3.test.cjs tests/milestone-5.test.cjs"
+    "test": "node --test tests/milestone-3.test.cjs tests/milestone-5.test.cjs tests/scoring-refinements.test.cjs"
   },
   "private": true
 }

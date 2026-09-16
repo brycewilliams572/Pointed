@@ -7,16 +7,24 @@ import type { GameRepository } from './database/game-repository';
 export class ScoreService {
   constructor(private readonly repository: GameRepository) {}
 
-  changeScore(gameId: string, playerId: string, amount: number, method: ScoreChangeMethod, allowNegativeScores: boolean) {
-    return this.repository.changeScore(gameId, playerId, amount, method, allowNegativeScores);
+  changeScore(gameId: string, playerId: string, amount: number, method: ScoreChangeMethod, allowNegativeScores: boolean, expectedScore?: number) {
+    return this.repository.changeScore(gameId, playerId, amount, method, allowNegativeScores, expectedScore);
   }
 
   undo(gameId: string) {
     return this.repository.undo(gameId);
   }
+
+  redo(gameId: string) {
+    return this.repository.redo(gameId);
+  }
+
+  restoreHistory(gameId: string, eventId: number) {
+    return this.repository.restoreHistory(gameId, eventId);
+  }
 }
 
-export const SCORE_PRESETS = [1, 5, 10, 20] as const;
+export const SCORE_PRESETS = [-10, -5, -1, 1, 5, 10] as const;
 export const MAX_SCORE = 999_999_999;
 
 export function parseScoreInput(input: string, method: 'manual' | 'set', allowNegativeScores: boolean): ScoreInputResult {
