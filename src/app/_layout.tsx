@@ -2,14 +2,19 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { GameProvider } from '@/context/game-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SettingsProvider } from '@/context/settings-context';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 // Keep Home behind a screen when opening a route directly.
 export const unstable_settings = { initialRouteName: 'index' };
 
 export default function RootLayout() {
-  const isDark = useColorScheme() === 'dark';
+  return <SettingsProvider><RootNavigator /></SettingsProvider>;
+}
+
+function RootNavigator() {
+  const isDark = useAppColorScheme() === 'dark';
   const colors = useTheme();
 
   return (

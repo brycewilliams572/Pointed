@@ -1,19 +1,26 @@
 ﻿import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect } from 'react';
+import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PlayerCard } from '@/components/player-card';
+import { ScoreEntryModal } from '@/components/score-entry-modal';
 import { useGame } from '@/context/game-context';
 import { useTheme } from '@/hooks/use-theme';
 import { getGridColumns } from '@/utils/scoreboard-layout';
 
 export default function ScoreboardScreen() {
-  const { game, changeScore, layout, setLayout } = useGame();
+  const { game, changeScore, scoreError, layout, setLayout } = useGame();
   const theme = useTheme();
   const router = useRouter();
   const { fontScale } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
+  const [entry, setEntry] = useState<{ playerId: string; method: 'manual' | 'set' } | null>(null);
+  const entryPlayer = game?.players.find((player) => player.id === entry?.playerId);
+  useEffect(() => {
+    if (scoreError) AccessibilityInfo.announceForAccessibility(scoreError);
+  }, [scoreError]);
   const columns = layout === 'list' ? 1 : getGridColumns(contentWidth, game?.players.length ?? 1, fontScale);
   const cardWidth = contentWidth > 0 ? (contentWidth - 12 * (columns - 1)) / columns : undefined;
 
@@ -43,7 +50,11 @@ export default function ScoreboardScreen() {
                 </Text>
               </Pressable>
             ))}
+            <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={[styles.modeButton, { backgroundColor: theme.backgroundElement }]}>
+              <Text style={[styles.label, { color: theme.text }]}>Settings</Text>
+            </Pressable>
           </View>
+          {scoreError ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{scoreError}</Text> : null}
         </View>
       ) : null}
       <ScrollView contentContainerStyle={styles.content}>
@@ -52,7 +63,7 @@ export default function ScoreboardScreen() {
             <View style={styles.cards}>
               {game.players.map((player) => (
                 <View key={player.id} style={{ width: cardWidth ?? '100%' }}>
-                  <PlayerCard player={player} layout={layout} onScoreChange={changeScore} />
+                  <PlayerCard player={player} layout={layout} onScoreChange={changeScore} onScoreEntry={(playerId, method) => setEntry({ playerId, method })} />
                 </View>
               ))}
             </View>
@@ -72,6 +83,9 @@ export default function ScoreboardScreen() {
           )}
         </View>
       </ScrollView>
+      {entry && entryPlayer ? (
+        <ScoreEntryModal key={`${entryPlayer.id}-${entry.method}`} player={entryPlayer} method={entry.method} onSubmit={changeScore} onClose={() => setEntry(null)} />
+      ) : null}
     </SafeAreaView>
   );
 }

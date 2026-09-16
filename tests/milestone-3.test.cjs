@@ -13,6 +13,8 @@ const cache = new Map();
 let frame;
 let context;
 let theme;
+let settings = { appearance: 'system', allowNegativeScores: false };
+let systemScheme = 'light';
 const navigation = [];
 const reactMock = {
   ...React,
@@ -27,6 +29,7 @@ const reactMock = {
   },
   useRef(initial) { return reactMock.useState(() => ({ current: initial }))[0]; },
   useCallback(fn) { return fn; },
+  useEffect() {},
   useContext() { return context; },
 };
 const native = {
@@ -34,8 +37,10 @@ const native = {
   Platform: { OS: 'ios', select: (options) => options.ios ?? options.default },
   useWindowDimensions: () => ({ width: 390, height: 844, fontScale: 1 }),
   Keyboard: { dismiss() {} },
+  AccessibilityInfo: { announceForAccessibility() {} },
+  useColorScheme: () => systemScheme,
 };
-for (const name of ['View', 'Text', 'Pressable', 'ScrollView', 'TextInput', 'KeyboardAvoidingView']) native[name] = name;
+for (const name of ['View', 'Text', 'Pressable', 'ScrollView', 'TextInput', 'KeyboardAvoidingView', 'Modal', 'Switch']) native[name] = name;
 
 function load(relative) {
   let file = path.resolve(root, relative);
@@ -53,6 +58,9 @@ function load(relative) {
     if (name === 'expo-router') return { useRouter: () => ({ push: (route) => navigation.push(route), replace() {} }) };
     if (name === 'expo-router/react-navigation') return { useHeaderHeight: () => 64 };
     if (name === '@/hooks/use-theme') return { useTheme: () => theme };
+    if (name === '@/context/settings-context') return { useSettings: () => settings };
+    if (name === '@expo/ui/swift-ui') return { ColorPicker: 'NativeColorPicker', Host: 'Host' };
+    if (name === '@expo/ui/swift-ui/modifiers') return Object.fromEntries(['accessibilityLabel', 'frame', 'labelsHidden', 'scaleEffect'].map((key) => [key, (value) => ({ key, value })]));
     if (name.endsWith('.css')) return {};
     if (name.startsWith('@/')) return load('src/' + name.slice(2));
     if (name.startsWith('.')) return load(path.resolve(path.dirname(file), name));
@@ -80,6 +88,8 @@ const { applyScoreChange } = load('src/services/scoring');
 const { GameProvider } = load('src/context/game-context');
 const { PlayerCard } = load('src/components/player-card');
 const { PlayerColorPicker } = load('src/components/player-color-picker');
+const { CustomColorPicker } = load('src/components/custom-color-picker');
+const { CustomColorPicker: AppleColorPicker } = load('src/components/custom-color-picker.ios.tsx');
 const { default: Scoreboard } = load('src/app/scoreboard');
 const { default: NewGame } = load('src/app/new-game');
 const { getGridColumns } = load('src/utils/scoreboard-layout');
@@ -176,23 +186,25 @@ test('grid adapts to count, phone/tablet width and larger text', () => {
   assert.equal(getGridColumns(0, 16, 1), 1);
 });
 
-test('custom color circle opens a validated editor, applies and cancels', () => {
+test('custom circle uses a visual palette on Android/web and Apple ColorPicker on iOS', () => {
   theme = Colors.dark;
   const changes = [];
-  const render = mount(PlayerColorPicker, { color: '#1D4ED8', playerLabel: 'Player 1', onChange: (color) => changes.push(color) });
+  const render = mount(CustomColorPicker, { color: '#1D4ED8', playerLabel: 'Player 1', onChange: (color) => changes.push(color) });
   let tree = render();
-  assert.equal(nodes(tree).filter((node) => node.type === 'Pressable').length, 10);
   button(tree, 'Choose custom color for Player 1').onPress();
   tree = render();
-  nodes(tree).find((node) => node.type === 'TextInput').props.onChangeText('#nope');
-  assert.equal(button(render(), 'Apply custom color to Player 1').disabled, true);
-  nodes(render()).find((node) => node.type === 'TextInput').props.onChangeText('#abc');
-  button(render(), 'Apply custom color to Player 1').onPress();
-  assert.deepEqual(changes, ['#AABBCC']);
+  button(tree, 'Color #0055AA').onPress();
+  assert.deepEqual(changes, ['#0055AA']);
   assert.ok(!nodes(render()).some((node) => node.type === 'TextInput'));
   button(render(), 'Choose custom color for Player 1').onPress();
-  button(render(), 'Cancel custom color').onPress();
-  assert.deepEqual(changes, ['#AABBCC']);
+  button(render(), 'Cancel color selection').onPress();
+  assert.deepEqual(changes, ['#0055AA']);
+  const apple = mount(AppleColorPicker, { color: '#0055AA', playerLabel: 'Player 1', onChange: (color) => changes.push(color) })();
+  const picker = nodes(apple).find((node) => node.type === 'NativeColorPicker');
+  assert.equal(picker.props.supportsOpacity, false);
+  picker.props.onSelectionChange('#112233');
+  assert.equal(changes.at(-1), '#112233');
+  assert.ok(!nodes(apple).some((node) => node.type === 'TextInput'));
 });
 
 test('custom hex validation and contrasting foregrounds across the RGB range', () => {
@@ -213,4 +225,99 @@ test('custom hex validation and contrasting foregrounds across the RGB range', (
     const values = [luminance(color.background), luminance(color.foreground)].sort((a, b) => b - a);
     assert.ok((values[0] + 0.05) / (values[1] + 0.05) >= 4.5, hex);
   }
+});
+
+const { parseScoreInput, MAX_SCORE } = load('src/services/scoring');
+const { ScoreEntryModal } = load('src/components/score-entry-modal');
+const { SettingsProvider } = load('src/context/settings-context');
+const { useAppColorScheme } = load('src/hooks/use-app-color-scheme');
+
+test('Milestone 4 scoring examples and bounds', () => {
+  let game = fixture(1);
+  const score = (current, amount, method = 'manual', negative = false) => {
+    game = { ...game, players: [{ ...game.players[0], score: current }] };
+    return applyScoreChange(game, 'p0', amount, method, negative).players[0].score;
+  };
+  assert.equal(score(0, 1, 'preset'), 1);
+  assert.equal(score(100, 20, 'preset'), 120);
+  assert.equal(score(100, 35), 135);
+  assert.equal(score(135, 95, 'set'), 95);
+  assert.equal(score(5, -10), 0);
+  assert.equal(score(5, -10, 'manual', true), -5);
+  assert.equal(score(0, -50, 'set', true), -50);
+  assert.equal(score(100, 0), 100);
+  assert.equal(score(100, 0, 'set'), 0);
+  assert.equal(score(MAX_SCORE, 1), MAX_SCORE);
+  assert.equal(score(-MAX_SCORE, -1, 'manual', true), -MAX_SCORE);
+  assert.equal(score(0, MAX_SCORE + 1, 'set'), 0);
+});
+
+test('manual input validation rejects blank, text, decimals, huge and disabled negative values', () => {
+  for (const value of ['', '  ', 'word', '1.5', '1e3', '12px', '1,000', '99999999999999999999']) {
+    assert.ok(parseScoreInput(value, 'manual', false).error, value);
+  }
+  assert.ok(parseScoreInput('-10', 'manual', false).error.includes('Settings'));
+  assert.equal(parseScoreInput('-10', 'manual', true).value, -10);
+  assert.equal(parseScoreInput('0', 'manual', false).value, 0);
+  assert.equal(parseScoreInput(' 35 ', 'manual', false).value, 35);
+});
+
+test('manual modal validates, submits once for rapid confirm and Cancel never applies', () => {
+  settings = { appearance: 'system', allowNegativeScores: false };
+  theme = Colors.light;
+  const calls = [];
+  let closes = 0;
+  const props = { player: { ...fixture(1).players[0], score: 100 }, method: 'manual', onSubmit: (...args) => calls.push(args), onClose: () => closes++ };
+  const render = mount(ScoreEntryModal, props);
+  button(render(), 'Add points for Player 1').onPress();
+  assert.equal(calls.length, 0);
+  nodes(render()).find((node) => node.type === 'TextInput').props.onChangeText('35');
+  const confirm = button(render(), 'Add 35 for Player 1');
+  confirm.onPress();
+  confirm.onPress();
+  assert.deepEqual(calls, [['p0', 35, 'manual']]);
+  assert.equal(closes, 1);
+  const set = mount(ScoreEntryModal, { ...props, method: 'set' });
+  nodes(set()).find((node) => node.type === 'TextInput').props.onChangeText('95');
+  button(set(), 'Set Score for Player 1').onPress();
+  assert.deepEqual(calls.at(-1), ['p0', 95, 'set']);
+  const cancel = mount(ScoreEntryModal, props);
+  button(cancel(), 'Cancel score entry').onPress();
+  assert.equal(calls.length, 2);
+});
+
+test('session appearance, negative toggle, and provider integration', () => {
+  const renderSettings = mount(SettingsProvider);
+  settings = renderSettings().props.value;
+  assert.equal(settings.appearance, 'system');
+  assert.equal(settings.allowNegativeScores, false);
+  systemScheme = 'dark';
+  assert.equal(useAppColorScheme(), 'dark');
+  settings.setAppearance('light');
+  settings = renderSettings().props.value;
+  assert.equal(useAppColorScheme(), 'light');
+  settings.setAppearance('dark');
+  settings = renderSettings().props.value;
+  systemScheme = 'light';
+  assert.equal(useAppColorScheme(), 'dark');
+  const provider = mount(GameProvider);
+  context = provider().props.value;
+  context.setGame(fixture(1));
+  context = provider().props.value;
+  context.changeScore('p0', 5, 'manual');
+  context.changeScore('p0', -10, 'manual');
+  context = provider().props.value;
+  assert.equal(context.game.players[0].score, 0);
+  settings.setAllowNegativeScores(true);
+  settings = renderSettings().props.value;
+  context = provider().props.value;
+  context.changeScore('p0', -50, 'manual');
+  context = provider().props.value;
+  assert.equal(context.game.players[0].score, -50);
+  context.changeScore('p0', MAX_SCORE, 'set');
+  context.changeScore('p0', 1, 'preset');
+  context = provider().props.value;
+  assert.equal(context.game.players[0].score, MAX_SCORE);
+  assert.ok(context.scoreError);
+  settings = { appearance: 'system', allowNegativeScores: false };
 });

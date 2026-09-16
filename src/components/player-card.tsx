@@ -3,15 +3,17 @@
 import { getPlayerColor } from '@/constants/player-colors';
 import { SCORE_PRESETS } from '@/services/scoring';
 import type { Player } from '@/types/game';
+import type { ScoreChangeMethod } from '@/types/scoring';
 import type { ScoreboardLayout } from '@/utils/scoreboard-layout';
 
 type Props = {
   player: Player;
   layout: ScoreboardLayout;
-  onScoreChange: (playerId: string, amount: number) => void;
+  onScoreChange: (playerId: string, amount: number, method: ScoreChangeMethod) => void;
+  onScoreEntry: (playerId: string, method: 'manual' | 'set') => void;
 };
 
-export function PlayerCard({ player, layout, onScoreChange }: Props) {
+export function PlayerCard({ player, layout, onScoreChange, onScoreEntry }: Props) {
   const color = getPlayerColor(player.color);
   return (
     <View style={[styles.card, { backgroundColor: color.background }]}>
@@ -19,6 +21,9 @@ export function PlayerCard({ player, layout, onScoreChange }: Props) {
       <Text
         accessibilityLabel={`${player.name}, score ${player.score}`}
         accessibilityLiveRegion="polite"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.4}
         style={[styles.score, layout === 'grid' && styles.gridScore, { color: color.foreground }]}>
         {player.score}
       </Text>
@@ -28,7 +33,7 @@ export function PlayerCard({ player, layout, onScoreChange }: Props) {
             key={amount}
             accessibilityRole="button"
             accessibilityLabel={`Add ${amount} ${amount === 1 ? 'point' : 'points'} to ${player.name}`}
-            onPress={() => onScoreChange(player.id, amount)}
+            onPress={() => onScoreChange(player.id, amount, 'preset')}
             style={({ pressed }) => [
               styles.button,
               { backgroundColor: color.foreground },
@@ -38,6 +43,16 @@ export function PlayerCard({ player, layout, onScoreChange }: Props) {
           </Pressable>
         ))}
       </View>
+      {(['manual', 'set'] as const).map((method) => (
+        <Pressable
+          key={method}
+          accessibilityRole="button"
+          accessibilityLabel={method === 'set' ? `Set ${player.name}'s score` : `Add custom score to ${player.name}`}
+          onPress={() => onScoreEntry(player.id, method)}
+          style={({ pressed }) => [styles.button, { borderWidth: 1, borderColor: color.foreground }, pressed && styles.pressed]}>
+          <Text style={[styles.buttonLabel, { color: color.foreground }]}>{method === 'set' ? 'Set Score' : 'Add Custom Score'}</Text>
+        </Pressable>
+      ))}
     </View>
   );
 }

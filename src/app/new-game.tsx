@@ -93,9 +93,6 @@ export default function NewGameScreen() {
               placeholderTextColor={theme.textSecondary}
               style={[styles.input, { color: theme.text, borderColor: theme.textSecondary, backgroundColor: theme.background }]}
             />
-            <Text style={[styles.message, { color: theme.textSecondary }]}>
-              Names are optional. Blank names become Player 1, Player 2, and so on.
-            </Text>
             {players.map((player, index) => (
               <PlayerEditor
                 key={player.id}
