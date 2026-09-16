@@ -1,16 +1,21 @@
 ﻿import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { useSettings } from '@/context/settings-context';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const { appearance, setAppearance, allowNegativeScores, setAllowNegativeScores } = useSettings();
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.form}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close Settings" onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={[styles.option, { backgroundColor: theme.backgroundElement }]}>
+            <Text style={[styles.label, { color: theme.text }]}>Done</Text>
+          </Pressable>
           <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Appearance</Text>
           {(['system', 'light', 'dark'] as const).map((value) => (
             <Pressable
@@ -33,7 +38,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           <Text style={[styles.message, { color: theme.textSecondary }]}>
-            When off, negative manual values are rejected and score changes stop at 0. Existing scores stay unchanged until you edit them.
+            You can always subtract points. When off, totals stop at 0. When on, totals can go below 0. Existing scores stay unchanged until you edit them.
           </Text>
           <Text style={[styles.message, { color: theme.textSecondary }]}>Settings reset when the app fully reloads.</Text>
         </View>

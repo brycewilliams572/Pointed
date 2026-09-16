@@ -26,10 +26,11 @@ export default function NewGameScreen() {
   const theme = useTheme();
   const router = useRouter();
   const headerHeight = useHeaderHeight();
-  const { setGame } = useGame();
+  const { createGame, saving, scoreError } = useGame();
   const [name, setName] = useState('');
   const [players, setPlayers] = useState<Player[]>(() => [createPlayer(1), createPlayer(2)]);
   const nextPlayer = useRef(3);
+  const starting = useRef(false);
 
   function addPlayer() {
     if (players.length >= MAX_PLAYERS) return;
@@ -37,17 +38,19 @@ export default function NewGameScreen() {
     setPlayers((current) => current.length < MAX_PLAYERS ? [...current, player] : current);
   }
 
-  function startGame() {
-    if (players.length < 1 || players.length > MAX_PLAYERS) return;
-    setGame({
-      id: `game-${Date.now()}`,
+  async function startGame() {
+    if (starting.current || players.length < 1 || players.length > MAX_PLAYERS) return;
+    starting.current = true;
+    const id = await createGame({
       name: name.trim() || undefined,
       players: players.map((player, displayOrder) => ({
         ...player, name: player.name.trim() || `Player ${displayOrder + 1}`, score: 0, displayOrder,
       })),
     });
+    starting.current = false;
+    if (!id) return;
     Keyboard.dismiss();
-    router.push('/scoreboard');
+    router.replace({ pathname: '/scoreboard', params: { gameId: id } });
   }
 
   return (
@@ -110,10 +113,13 @@ export default function NewGameScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Start Game"
+              accessibilityState={{ disabled: saving, busy: saving }}
+              disabled={saving}
               onPress={startGame}
               style={({ pressed }) => [styles.button, { backgroundColor: theme.text }, pressed && styles.pressed]}>
-              <Text style={[styles.label, { color: theme.background }]}>Start Game</Text>
+              <Text style={[styles.label, { color: theme.background }]}>{saving ? 'Saving game…' : 'Start Game'}</Text>
             </Pressable>
+            {scoreError ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{scoreError}</Text> : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

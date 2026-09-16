@@ -10,10 +10,10 @@ export function parseScoreInput(input: string, method: 'manual' | 'set', allowNe
   if (!/^[+-]?\d+$/.test(text)) return { error: 'Enter a whole number, without decimals or other characters.' };
   const value = Number(text);
   if (!Number.isSafeInteger(value) || Math.abs(value) > MAX_SCORE) {
-    return { error: `Enter a number between ${allowNegativeScores ? -MAX_SCORE : 0} and ${MAX_SCORE}.` };
+    return { error: `Enter a number between ${method === 'manual' || allowNegativeScores ? -MAX_SCORE : 0} and ${MAX_SCORE}.` };
   }
-  if (value < 0 && !allowNegativeScores) {
-    return { error: 'Negative values are off. Enable Allow negative scores in Settings to enter a negative value.' };
+  if (method === 'set' && value < 0 && !allowNegativeScores) {
+    return { error: 'The total cannot be below 0. Enable Allow negative scores in Settings to set a negative total.' };
   }
   return { value };
 }
