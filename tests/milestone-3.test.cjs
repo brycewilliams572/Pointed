@@ -7,6 +7,16 @@ const path = require('node:path');
 const test = require('node:test');
 const ts = require('typescript');
 const React = require('react');
+const { connection, load: loadDatabase } = require('./sqlite-helper.cjs');
+const { migrateDatabase } = loadDatabase('src/services/database/migrations');
+const { GameRepository } = loadDatabase('src/services/database/game-repository');
+const db = connection();
+const repository = migrateDatabase(db).then(() => new GameRepository(db));
+global.__DEV__ = false;
+const pendingActions = [];
+const flush = () => Promise.all(pendingActions.splice(0));
+function track(value) { pendingActions.push(value); return value; }
+
 
 const root = path.resolve(__dirname, '..');
 const cache = new Map();
@@ -52,10 +62,11 @@ function load(relative) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const localRequire = (name) => {
+    if (name === '@/services/database/database') return { getGameRepository: () => repository };
     if (name === 'react') return reactMock;
     if (name === 'react-native') return native;
     if (name === 'react-native-safe-area-context') return { SafeAreaView: 'SafeAreaView' };
-    if (name === 'expo-router') return { useRouter: () => ({ push: (route) => navigation.push(route), replace() {} }) };
+    if (name === 'expo-router') return { Stack: { Screen: 'StackScreen' }, useFocusEffect() {}, useLocalSearchParams: () => ({}), useRouter: () => ({ push: (route) => navigation.push(route), replace: (route) => navigation.push(route) }) };
     if (name === 'expo-router/react-navigation') return { useHeaderHeight: () => 64 };
     if (name === '@/hooks/use-theme') return { useTheme: () => theme };
     if (name === '@/context/settings-context') return { useSettings: () => settings };
@@ -100,17 +111,19 @@ const fixture = (count) => ({ id: 'game', players: Array.from({ length: count },
 })) });
 
 for (const count of [1, 4, 16]) {
-  test(`${count} players: batched scores, isolated players, both layouts and themes`, () => {
+  test(`${count} players: batched scores, isolated players, both layouts and themes`, async () => {
     const renderProvider = mount(GameProvider);
     context = renderProvider().props.value;
-    context.setGame(fixture(count));
+    await context.createGame(fixture(count));
     context = renderProvider().props.value;
-    const changeScore = context.changeScore;
+    const playerId = context.game.players[0].id;
+    const changeScore = (...args) => track(context.changeScore(...args));
     // All these presses happen before another render (the stale-state regression).
-    for (let index = 0; index < 100; index++) changeScore('p0', 1);
-    changeScore('p0', 5);
-    changeScore('p0', 5);
-    changeScore('p0', 10);
+    for (let index = 0; index < 100; index++) changeScore(playerId, 1);
+    changeScore(playerId, 5);
+    changeScore(playerId, 5);
+    changeScore(playerId, 10);
+    await flush();
     context = renderProvider().props.value;
     assert.equal(context.game.players[0].score, 120);
     assert.ok(context.game.players.slice(1).every((player) => player.score === 0));
@@ -119,7 +132,7 @@ for (const count of [1, 4, 16]) {
       const renderScreen = mount(Scoreboard);
       nodes(renderScreen()).find((node) => node.props?.onLayout).props.onLayout({ nativeEvent: { layout: { width: 358 } } });
       for (const mode of ['list', 'grid', 'list', 'grid']) {
-        button(renderScreen(), mode === 'grid' ? 'Grid view' : 'List view').onPress();
+        await button(renderScreen(), mode === 'grid' ? 'Grid view' : 'List view').onPress();
         context = renderProvider().props.value;
         const tree = renderScreen();
         const cards = nodes(tree).filter((node) => node.type === PlayerCard);
@@ -136,6 +149,8 @@ for (const count of [1, 4, 16]) {
       button(card, `Add ${amount} ${amount === 1 ? 'point' : 'points'} to Player 1`).onPress();
     }
     context = renderProvider().props.value;
+    await flush();
+    context = renderProvider().props.value;
     assert.equal(context.game.players[0].score, 156);
   });
 }
@@ -150,7 +165,7 @@ test('score transition is immutable and rejects invalid increments or players', 
   assert.equal(applyScoreChange(null, 'p0', 1), null);
 });
 
-test('optional names, pinned Add Player, 1–16 guards and default names after removal', () => {
+test('optional names, pinned Add Player, 1–16 guards and default names after removal', async () => {
   theme = Colors.light;
   const renderProvider = mount(GameProvider);
   context = renderProvider().props.value;
@@ -170,11 +185,11 @@ test('optional names, pinned Add Player, 1–16 guards and default names after r
   assert.equal(editors.length, 1);
   assert.equal(editors[0].props.canRemove, false);
   editors[0].props.onChange({ name: '   ' });
-  button(render(), 'Start Game').onPress();
+  await button(render(), 'Start Game').onPress();
   context = renderProvider().props.value;
   assert.equal(context.game.players[0].name, 'Player 1');
   assert.equal(context.game.players[0].score, 0);
-  assert.equal(navigation.at(-1), '/scoreboard');
+  assert.equal(navigation.at(-1).pathname, '/scoreboard');
 });
 
 test('grid adapts to count, phone/tablet width and larger text', () => {
@@ -232,6 +247,23 @@ const { ScoreEntryModal } = load('src/components/score-entry-modal');
 const { SettingsProvider } = load('src/context/settings-context');
 const { useAppColorScheme } = load('src/hooks/use-app-color-scheme');
 
+test('switching games rejects stale handlers and ignores older load results', async () => {
+  const render = mount(GameProvider);
+  let value = render().props.value;
+  const first = await value.createGame(fixture(1));
+  value = render().props.value;
+  const staleChange = value.changeScore;
+  const playerId = value.game.players[0].id;
+  const second = await value.createGame(fixture(1));
+  value = render().props.value;
+  assert.equal(await staleChange(playerId, 20), false);
+  await Promise.all([value.openGame(first), value.openGame(second), value.openGame(first)]);
+  value = render().props.value;
+  assert.equal(value.game.id, first);
+  assert.equal(value.game.players[0].score, 0);
+  assert.equal(value.loadingGame, false);
+});
+
 test('Milestone 4 scoring examples and bounds', () => {
   let game = fixture(1);
   const score = (current, amount, method = 'manual', negative = false) => {
@@ -256,37 +288,39 @@ test('manual input validation rejects blank, text, decimals, huge and disabled n
   for (const value of ['', '  ', 'word', '1.5', '1e3', '12px', '1,000', '99999999999999999999']) {
     assert.ok(parseScoreInput(value, 'manual', false).error, value);
   }
-  assert.ok(parseScoreInput('-10', 'manual', false).error.includes('Settings'));
+  assert.equal(parseScoreInput('-10', 'manual', false).value, -10);
+  assert.ok(parseScoreInput('-10', 'set', false).error.includes('Settings'));
   assert.equal(parseScoreInput('-10', 'manual', true).value, -10);
   assert.equal(parseScoreInput('0', 'manual', false).value, 0);
   assert.equal(parseScoreInput(' 35 ', 'manual', false).value, 35);
 });
 
-test('manual modal validates, submits once for rapid confirm and Cancel never applies', () => {
+test('manual modal validates, submits once for rapid confirm and Cancel never applies', async () => {
   settings = { appearance: 'system', allowNegativeScores: false };
   theme = Colors.light;
   const calls = [];
   let closes = 0;
-  const props = { player: { ...fixture(1).players[0], score: 100 }, method: 'manual', onSubmit: (...args) => calls.push(args), onClose: () => closes++ };
+  const props = { player: { ...fixture(1).players[0], score: 100 }, method: 'manual', onSubmit: async (...args) => { calls.push(args); return true; }, onClose: () => closes++ };
   const render = mount(ScoreEntryModal, props);
   button(render(), 'Add points for Player 1').onPress();
   assert.equal(calls.length, 0);
   nodes(render()).find((node) => node.type === 'TextInput').props.onChangeText('35');
   const confirm = button(render(), 'Add 35 for Player 1');
-  confirm.onPress();
-  confirm.onPress();
+  const first = confirm.onPress();
+  await confirm.onPress();
+  await first;
   assert.deepEqual(calls, [['p0', 35, 'manual']]);
   assert.equal(closes, 1);
   const set = mount(ScoreEntryModal, { ...props, method: 'set' });
   nodes(set()).find((node) => node.type === 'TextInput').props.onChangeText('95');
-  button(set(), 'Set Score for Player 1').onPress();
+  await button(set(), 'Set Score for Player 1').onPress();
   assert.deepEqual(calls.at(-1), ['p0', 95, 'set']);
   const cancel = mount(ScoreEntryModal, props);
   button(cancel(), 'Cancel score entry').onPress();
   assert.equal(calls.length, 2);
 });
 
-test('session appearance, negative toggle, and provider integration', () => {
+test('session appearance, negative toggle, and provider integration', async () => {
   const renderSettings = mount(SettingsProvider);
   settings = renderSettings().props.value;
   assert.equal(settings.appearance, 'system');
@@ -302,20 +336,21 @@ test('session appearance, negative toggle, and provider integration', () => {
   assert.equal(useAppColorScheme(), 'dark');
   const provider = mount(GameProvider);
   context = provider().props.value;
-  context.setGame(fixture(1));
+  await context.createGame(fixture(1));
   context = provider().props.value;
-  context.changeScore('p0', 5, 'manual');
-  context.changeScore('p0', -10, 'manual');
+  const playerId = context.game.players[0].id;
+  await context.changeScore(playerId, 5, 'manual');
+  await context.changeScore(playerId, -10, 'manual');
   context = provider().props.value;
   assert.equal(context.game.players[0].score, 0);
   settings.setAllowNegativeScores(true);
   settings = renderSettings().props.value;
   context = provider().props.value;
-  context.changeScore('p0', -50, 'manual');
+  await context.changeScore(playerId, -50, 'manual');
   context = provider().props.value;
   assert.equal(context.game.players[0].score, -50);
-  context.changeScore('p0', MAX_SCORE, 'set');
-  context.changeScore('p0', 1, 'preset');
+  await context.changeScore(playerId, MAX_SCORE, 'set');
+  await context.changeScore(playerId, 1, 'preset');
   context = provider().props.value;
   assert.equal(context.game.players[0].score, MAX_SCORE);
   assert.ok(context.scoreError);

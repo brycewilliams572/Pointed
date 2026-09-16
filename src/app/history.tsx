@@ -1,5 +1,5 @@
-﻿import { useEffect } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,7 +13,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const matches = !gameId || game?.id === gameId;
   const canUndo = matches && events.some((event) => event.type !== 'UNDO' && event.undoneAt === null);
-  useEffect(() => { if (gameId && game?.id !== gameId) void openGame(gameId); }, [gameId, game?.id, openGame]);
+  useFocusEffect(useCallback(() => { if (gameId) void openGame(gameId); }, [gameId, openGame]));
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.screen}>

@@ -1,5 +1,20 @@
 import type { Game } from '../types/game';
 import type { ScoreChangeMethod, ScoreInputResult } from '../types/scoring';
+import type { GameRepository } from './database/game-repository';
+
+// Persistence entry point. The repository validates against the score it reads
+// inside its transaction, never a potentially stale score from React state.
+export class ScoreService {
+  constructor(private readonly repository: GameRepository) {}
+
+  changeScore(gameId: string, playerId: string, amount: number, method: ScoreChangeMethod, allowNegativeScores: boolean) {
+    return this.repository.changeScore(gameId, playerId, amount, method, allowNegativeScores);
+  }
+
+  undo(gameId: string) {
+    return this.repository.undo(gameId);
+  }
+}
 
 export const SCORE_PRESETS = [1, 5, 10, 20] as const;
 export const MAX_SCORE = 999_999_999;
@@ -18,7 +33,9 @@ export function parseScoreInput(input: string, method: 'manual' | 'set', allowNe
   return { value };
 }
 
-export function getScoreChangeError(currentScore: number, amount: number, method: ScoreChangeMethod): string | null {
+export function getScoreChangeError(currentScore: number, amount: number, method: ScoreChangeMethod, allowNegativeScores = true): string | null {
+  if (!['preset', 'manual', 'set'].includes(method)) return 'Choose a valid score action.';
+  if (method === 'set' && amount < 0 && !allowNegativeScores) return 'The total cannot be below 0. Enable Allow negative scores in Settings to set a negative total.';
   if (!Number.isSafeInteger(amount) || Math.abs(amount) > MAX_SCORE) return `Use a whole number between ${-MAX_SCORE} and ${MAX_SCORE}.`;
   if (method === 'preset' && amount <= 0) return 'Preset points must be greater than 0.';
   const next = method === 'set' ? amount : currentScore + amount;
@@ -26,7 +43,7 @@ export function getScoreChangeError(currentScore: number, amount: number, method
   return null;
 }
 
-// Pure state transition: the provider owns state; future persistence can wrap this boundary.
+// Pure scoring rules shared by input validation and the SQLite transaction.
 export function applyScoreChange(
   game: Game | null,
   playerId: string,
@@ -36,7 +53,7 @@ export function applyScoreChange(
 ): Game | null {
   if (!game) return game;
   const player = game.players.find((item) => item.id === playerId);
-  if (!player || getScoreChangeError(player.score, amount, method)) return game;
+  if (!player || getScoreChangeError(player.score, amount, method, allowNegativeScores)) return game;
   const requested = method === 'set' ? amount : player.score + amount;
   const score = allowNegativeScores ? requested : Math.max(0, requested);
   if (score === player.score) return game;

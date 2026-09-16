@@ -1,6 +1,5 @@
-﻿import { useState } from 'react';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { AccessibilityInfo, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,7 +20,7 @@ export default function ScoreboardScreen() {
   const [contentWidth, setContentWidth] = useState(0);
   const [entry, setEntry] = useState<{ playerId: string; method: 'manual' | 'set' } | null>(null);
   const entryPlayer = game?.players.find((player) => player.id === entry?.playerId);
-  useEffect(() => { if (gameId) void openGame(gameId); }, [gameId, openGame]);
+  useFocusEffect(useCallback(() => { if (gameId) void openGame(gameId); }, [gameId, openGame]));
   useEffect(() => {
     if (scoreError) AccessibilityInfo.announceForAccessibility(scoreError);
   }, [scoreError]);
@@ -66,7 +65,7 @@ export default function ScoreboardScreen() {
               <Text style={[styles.label, { color: canUndo && !saving ? theme.text : theme.textSecondary }]}>Undo</Text>
             </Pressable>
           </View>
-          {saving ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>Saving…</Text> : null}
+          {saving ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>Savingâ€¦</Text> : null}
           {scoreError ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{scoreError}</Text> : null}
         </View>
       ) : null}
@@ -83,7 +82,7 @@ export default function ScoreboardScreen() {
           ) : (
             <>
               <Text style={[styles.message, { color: theme.text }]}>
-                {loadingGame ? 'Loading game…' : scoreError ?? 'Choose a saved game from Home or create a new game.'}
+                {loadingGame ? 'Loading gameâ€¦' : scoreError ?? 'Choose a saved game from Home or create a new game.'}
               </Text>
               {!loadingGame && gameId ? <Pressable accessibilityRole="button" accessibilityLabel="Retry loading game" onPress={() => void openGame(gameId)} style={styles.button}><Text style={[styles.label, { color: theme.text }]}>Try again</Text></Pressable> : null}
               <Pressable

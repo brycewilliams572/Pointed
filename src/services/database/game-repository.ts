@@ -1,4 +1,4 @@
-﻿import { normalizePlayerColor } from '../../constants/player-colors';
+import { normalizePlayerColor } from '../../constants/player-colors';
 import type { Game } from '../../types/game';
 import type { GameSnapshot, GameSummary, SavedGame, ScoreEvent } from '../../types/history';
 import type { ScoreChangeMethod } from '../../types/scoring';
@@ -81,7 +81,7 @@ export class GameRepository {
       const before = await this.snapshot(gameId);
       const player = before.game.players.find((item) => item.id === playerId);
       if (!player) throw new GameOperationError('This player is no longer available.');
-      const error = getScoreChangeError(player.score, amount, method);
+      const error = getScoreChangeError(player.score, amount, method, allowNegativeScores);
       if (error) throw new GameOperationError(error);
       const updated = applyScoreChange(before.game, playerId, amount, method, allowNegativeScores)!;
       const score = updated.players.find((item) => item.id === playerId)!.score;

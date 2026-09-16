@@ -1,8 +1,9 @@
-﻿import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 
 import { useSettings } from '@/context/settings-context';
 import { getGameRepository } from '@/services/database/database';
 import { GameOperationError, type GameRepository } from '@/services/database/game-repository';
+import { ScoreService } from '@/services/scoring';
 import type { Game } from '@/types/game';
 import type { GameSnapshot, GameSummary, SavedGame, ScoreEvent } from '@/types/history';
 import type { ScoreChangeMethod } from '@/types/scoring';
@@ -43,6 +44,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const selectedId = useRef<string | null>(null);
+  const selectionVersion = useRef(0);
   const undoInFlight = useRef(false);
   const { allowNegativeScores } = useSettings();
 
@@ -59,9 +61,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { void refreshGames(); }, [refreshGames]);
-
   const openGame = useCallback(async (id: string) => {
+    const version = ++selectionVersion.current;
     selectedId.current = id;
     setSnapshot(null);
     setLoadingGame(true);
@@ -69,13 +70,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const repository = await getGameRepository();
       const next = await repository.loadGame(id);
-      if (selectedId.current === id) setSnapshot(next);
+      if (selectionVersion.current === version) setSnapshot(next);
       return true;
     } catch (error) {
-      if (selectedId.current === id) setScoreError(messageFor(error, 'This game could not be loaded. Please try again.'));
+      if (selectionVersion.current === version) setScoreError(messageFor(error, 'This game could not be loaded. Please try again.'));
       return false;
     } finally {
-      if (selectedId.current === id) setLoadingGame(false);
+      if (selectionVersion.current === version) setLoadingGame(false);
     }
   }, []);
 
@@ -85,7 +86,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     try {
       const repository = await getGameRepository();
       const next = await repository.createGame(draft);
+      selectionVersion.current++;
       selectedId.current = next.game.id;
+      setLoadingGame(false);
       setSnapshot(next);
       return next.game.id;
     } catch (error) {
@@ -97,14 +100,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const mutate = useCallback(async (id: string, work: (repository: GameRepository) => Promise<GameSnapshot>) => {
+    if (selectedId.current !== id) return false;
+    const version = selectionVersion.current;
     setPendingCount((count) => count + 1);
     setScoreError(null);
     try {
       const next = await work(await getGameRepository());
-      if (selectedId.current === id) setSnapshot(next);
+      if (selectionVersion.current === version) setSnapshot(next);
       return true;
     } catch (error) {
-      if (selectedId.current === id) setScoreError(messageFor(error, 'The change could not be saved. Your previous saved score is unchanged. Try again.'));
+      if (selectionVersion.current === version) setScoreError(messageFor(error, 'The change could not be saved. Your previous saved score is unchanged. Try again.'));
       return false;
     } finally {
       setPendingCount((count) => count - 1);
@@ -114,7 +119,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const game = snapshot?.game ?? null;
   const changeScore = useCallback(async (playerId: string, amount: number, method: ScoreChangeMethod = 'preset') => {
     if (!game) return false;
-    return mutate(game.id, (repository) => repository.changeScore(game.id, playerId, amount, method, allowNegativeScores));
+    return mutate(game.id, (repository) => new ScoreService(repository).changeScore(game.id, playerId, amount, method, allowNegativeScores));
   }, [game, allowNegativeScores, mutate]);
 
   const setLayout = useCallback(async (layout: ScoreboardLayout) => {
@@ -125,7 +130,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!game || undoInFlight.current) return false;
     undoInFlight.current = true;
     try {
-      return await mutate(game.id, (repository) => repository.undo(game.id));
+      return await mutate(game.id, (repository) => new ScoreService(repository).undo(game.id));
     } finally {
       undoInFlight.current = false;
     }
