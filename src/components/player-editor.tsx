@@ -9,25 +9,24 @@ type Props = {
   player: Player;
   index: number;
   canRemove: boolean;
-  error?: string;
   onChange: (changes: Partial<Pick<Player, 'name' | 'color'>>) => void;
   onRemove: () => void;
 };
 
-export function PlayerEditor({ player, index, canRemove, error, onChange, onRemove }: Props) {
+export function PlayerEditor({ player, index, canRemove, onChange, onRemove }: Props) {
   const theme = useTheme();
   const color = getPlayerColor(player.color);
   const label = `Player ${index + 1}`;
   return (
     <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
       <Text accessibilityRole="header" style={[styles.badge, { backgroundColor: color.background, color: color.foreground }]}>
-        {label} · {color.name}
+        {label}
       </Text>
       <Text nativeID={`${player.id}-label`} style={[styles.label, { color: theme.text }]}>{label} name</Text>
       <TextInput
         accessibilityLabel={`${label} name`}
         accessibilityLabelledBy={`${player.id}-label`}
-        accessibilityHint={error ?? 'Required to start the game.'}
+        accessibilityHint={`Optional. Leave blank to use ${label}.`}
         value={player.name}
         onChangeText={(name) => onChange({ name })}
         placeholder={label}
@@ -36,7 +35,6 @@ export function PlayerEditor({ player, index, canRemove, error, onChange, onRemo
         autoCorrect={false}
         style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.textSecondary }]}
       />
-      {error ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{error}</Text> : null}
       <Text style={[styles.label, { color: theme.text }]}>{label} color</Text>
       <PlayerColorPicker color={player.color} playerLabel={label} onChange={(value) => onChange({ color: value })} />
       <Pressable

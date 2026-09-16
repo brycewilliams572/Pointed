@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/react-navigation';
-import { AccessibilityInfo, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PlayerEditor } from '@/components/player-editor';
@@ -29,11 +29,7 @@ export default function NewGameScreen() {
   const { setGame } = useGame();
   const [name, setName] = useState('');
   const [players, setPlayers] = useState<Player[]>(() => [createPlayer(1), createPlayer(2)]);
-  const [submitted, setSubmitted] = useState(false);
   const nextPlayer = useRef(3);
-  const errors = players.map((player, index) =>
-    player.name.trim() ? undefined : `Enter a name for Player ${index + 1}.`
-  );
 
   function addPlayer() {
     if (players.length >= MAX_PLAYERS) return;
@@ -42,18 +38,12 @@ export default function NewGameScreen() {
   }
 
   function startGame() {
-    setSubmitted(true);
-    const messages = errors.filter(Boolean);
-    if (messages.length) {
-      AccessibilityInfo.announceForAccessibility(messages.join(' '));
-      return;
-    }
     if (players.length < 1 || players.length > MAX_PLAYERS) return;
     setGame({
       id: `game-${Date.now()}`,
       name: name.trim() || undefined,
       players: players.map((player, displayOrder) => ({
-        ...player, name: player.name.trim(), score: 0, displayOrder,
+        ...player, name: player.name.trim() || `Player ${displayOrder + 1}`, score: 0, displayOrder,
       })),
     });
     Keyboard.dismiss();
@@ -66,6 +56,29 @@ export default function NewGameScreen() {
         style={styles.screen}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={headerHeight}>
+        <View style={[styles.toolbar, { backgroundColor: theme.background }]}>
+          <View style={styles.toolbarRow}>
+            <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[styles.label, { color: theme.text }]}>
+              {players.length} / {MAX_PLAYERS} players
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add Player"
+              accessibilityState={{ disabled: players.length >= MAX_PLAYERS }}
+              disabled={players.length >= MAX_PLAYERS}
+              onPress={addPlayer}
+              style={({ pressed }) => [styles.button, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}>
+              <Text style={[styles.label, { color: players.length >= MAX_PLAYERS ? theme.textSecondary : theme.text }]}>
+                Add Player
+              </Text>
+            </Pressable>
+          </View>
+          {players.length === MAX_PLAYERS ? (
+            <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>
+              Maximum of 16 players reached. Remove a player to add another.
+            </Text>
+          ) : null}
+        </View>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
           <View style={styles.form}>
             <Text nativeID="game-name-label" style={[styles.label, { color: theme.text }]}>
@@ -80,11 +93,8 @@ export default function NewGameScreen() {
               placeholderTextColor={theme.textSecondary}
               style={[styles.input, { color: theme.text, borderColor: theme.textSecondary, backgroundColor: theme.background }]}
             />
-            <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={[styles.label, { color: theme.text }]}>
-              {players.length} / {MAX_PLAYERS} players
-            </Text>
             <Text style={[styles.message, { color: theme.textSecondary }]}>
-              Add 1–16 players. Every player needs a name.
+              Names are optional. Blank names become Player 1, Player 2, and so on.
             </Text>
             {players.map((player, index) => (
               <PlayerEditor
@@ -92,7 +102,6 @@ export default function NewGameScreen() {
                 player={player}
                 index={index}
                 canRemove={players.length > 1}
-                error={submitted ? errors[index] : undefined}
                 onChange={(changes) => setPlayers((current) => current.map((item) =>
                   item.id === player.id ? { ...item, ...changes } : item
                 ))}
@@ -101,27 +110,6 @@ export default function NewGameScreen() {
                 )}
               />
             ))}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add Player"
-              accessibilityState={{ disabled: players.length >= MAX_PLAYERS }}
-              disabled={players.length >= MAX_PLAYERS}
-              onPress={addPlayer}
-              style={({ pressed }) => [styles.button, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}>
-              <Text style={[styles.label, { color: players.length >= MAX_PLAYERS ? theme.textSecondary : theme.text }]}>
-                Add Player
-              </Text>
-            </Pressable>
-            {players.length === MAX_PLAYERS ? (
-              <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>
-                Maximum of 16 players reached. Remove a player to add another.
-              </Text>
-            ) : null}
-            {submitted && errors.some(Boolean) ? (
-              <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>
-                {errors.filter(Boolean).join('\n')}
-              </Text>
-            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Start Game"
@@ -138,6 +126,8 @@ export default function NewGameScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  toolbar: { width: '100%', maxWidth: 648, alignSelf: 'center', paddingHorizontal: 24, paddingVertical: 12, gap: 8 },
+  toolbarRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   content: { padding: 24 },
   form: { width: '100%', maxWidth: 600, alignSelf: 'center', gap: 16 },
   label: { fontSize: 18, fontWeight: '600' },
