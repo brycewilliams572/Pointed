@@ -65,8 +65,11 @@ function load(relative) {
     if (name === '@/services/database/database') return { getGameRepository: () => repository };
     if (name === 'react') return reactMock;
     if (name === 'expo-symbols') return { SymbolView: 'SymbolView' };
+    if (name === 'expo-font') return { useFonts: () => [true, null] };
+    if (name === 'expo-image') return { Image: 'Image' };
+    if (/\.(ttf|svg)$/.test(name)) return name;
     if (name === 'react-native') return native;
-    if (name === 'react-native-safe-area-context') return { SafeAreaView: 'SafeAreaView' };
+    if (name === 'react-native-safe-area-context') return { SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) };
     if (name === 'expo-router') return { Stack: { Screen: 'StackScreen' }, useFocusEffect() {}, useLocalSearchParams: () => ({}), useRouter: () => ({ navigate: (route) => navigation.push(route), push: (route) => navigation.push(route), replace: (route) => navigation.push(route) }) };
     if (name === 'expo-router/react-navigation') return { useHeaderHeight: () => 64 };
     if (name === '@/hooks/use-theme') return { useTheme: () => theme };
