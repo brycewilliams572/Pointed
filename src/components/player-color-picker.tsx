@@ -8,12 +8,13 @@ type Props = {
   color: string;
   playerLabel: string;
   onChange: (color: string) => void;
+  centered?: boolean;
 };
 
-export function PlayerColorPicker({ color, playerLabel, onChange }: Props) {
+export function PlayerColorPicker({ color, playerLabel, onChange, centered = false }: Props) {
   const theme = useTheme();
   return (
-    <View style={styles.options}>
+    <View style={[styles.options, centered && styles.centered]}>
       {PLAYER_COLORS.map((option) => (
         <Pressable
           key={option.name}
@@ -34,6 +35,7 @@ export function PlayerColorPicker({ color, playerLabel, onChange }: Props) {
 
 const styles = StyleSheet.create({
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  centered: { justifyContent: 'center', maxWidth: 272, alignSelf: 'center' },
   circle: { width: 48, height: 48, borderWidth: 1, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   symbol: { fontSize: 24, fontWeight: '700' },
 });
