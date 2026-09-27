@@ -81,6 +81,20 @@ test('migration, creation, rapid scoring, history, stored-score Undo and disk re
   } finally { db.native.close(); fs.rmSync(dir, { recursive: true }); }
 });
 
+test('schema v3 persists settings without changing game data', async () => {
+  const db = connection();
+  try {
+    await migrateDatabase(db);
+    const repo = new GameRepository(db);
+    assert.deepEqual(await repo.loadSettings(), { appearance: 'system', allowNegativeScores: false });
+    await repo.setSetting('appearance', 'dark');
+    await repo.setSetting('allowNegativeScores', true);
+    assert.deepEqual(await repo.loadSettings(), { appearance: 'dark', allowNegativeScores: true });
+    assert.equal((await db.getFirstAsync('PRAGMA user_version')).user_version, 3);
+    assert.deepEqual(await repo.listGames(), []);
+  } finally { db.native.close(); }
+});
+
 test('failed event insert rolls back score, Undo marker and timestamps; queue recovers', async () => {
   const db = connection();
   try {
@@ -119,7 +133,7 @@ test('failed migration is atomic and newer databases are refused', async () => {
     assert.equal(await db.getFirstAsync("SELECT name FROM sqlite_master WHERE name = 'games'"), null);
     db.execAsync = original;
     await migrateDatabase(db);
-    await db.execAsync('PRAGMA user_version = 3');
+    await db.execAsync('PRAGMA user_version = 4');
     await assert.rejects(migrateDatabase(db), /newer version/);
   } finally { db.native.close(); }
 });

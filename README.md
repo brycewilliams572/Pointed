@@ -1,56 +1,109 @@
-# Welcome to your Expo app 👋
+# Pointed
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Pointed is an iOS-first scoreboard built with Expo 57, Expo Router, React Native,
+React Native Web, TypeScript, and SQLite. The same project runs in Expo Go and as
+a statically exported installable web app.
 
-## Get started
+## Local development
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Install dependencies and start the web app:
 
 ```bash
-npm run reset-project
+npm install
+npm run web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Open the URL shown by Expo (normally `http://localhost:8081`). `localhost` is a
+secure-context exception in desktop browsers, so Expo SQLite can persist data
+there. To exercise the production output locally:
 
-### Other setup steps
+```bash
+npx expo export -p web
+npx expo serve dist
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Run the native app with `npm run ios`, `npm run android`, or `npx expo start` and
+Expo Go as before.
 
-## Learn more
+## iPhone Safari testing
 
-To learn more about developing your project with Expo, look at the following resources:
+Browser SQLite requires a secure context. A LAN URL such as
+`http://192.168.x.x:8081` is not sufficient, even though the page itself may
+load. Use one of these options:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Deploy `dist` to an HTTPS preview URL with the headers described below.
+2. Run `npx expo start --web --tunnel` and use the HTTPS tunnel URL Expo prints.
+   The tunnel command may ask to install Expo's tunnel helper outside this
+   project.
+3. Use a locally trusted HTTPS certificate and `npx expo start --web --https`.
+   The certificate must be trusted by the iPhone; merely bypassing a Safari
+   certificate warning is not a reliable secure-context test.
 
-## Join the community
+Keep the computer and iPhone online while using a development or preview URL.
+Open the HTTPS URL in Safari, not a Private Browsing tab.
 
-Join our community of developers creating universal apps.
+## Production export and hosting
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Build the static site with:
+
+```bash
+npx expo export -p web
+```
+
+Upload the contents of `dist` to an HTTPS static host. The host must:
+
+- serve clean Expo Router paths such as `/scoreboard` and `/history`;
+- preserve the files under `/_expo`, `/assets`, and `/icons`;
+- serve `.wasm` files with `Content-Type: application/wasm`;
+- add these headers to every HTML, JavaScript, worker, WASM, and asset response:
+
+```text
+Cross-Origin-Embedder-Policy: credentialless
+Cross-Origin-Opener-Policy: same-origin
+```
+
+Expo emits the same headers in `dist/_expo/.routes.json` for EAS Hosting. The
+export also includes `dist/_headers`, which is recognized by hosts such as
+Netlify and Cloudflare Pages. For other hosts, configure their equivalent global
+header rules. A host that cannot set these headers is not suitable for Pointed's
+Expo SQLite web build.
+
+The app stores browser data in the origin-private file system. Data is scoped to
+the exact origin, so changing the protocol, hostname, subdomain, or port creates
+a different browser data store. Safari Private Browsing does not provide the
+required persistent storage.
+
+## Install on iPhone
+
+1. Open the deployed HTTPS URL in Safari.
+2. Tap Share.
+3. Tap **Add to Home Screen** (use **Edit Actions** if it is hidden).
+4. Confirm the name **Pointed**, then tap **Add**.
+5. Launch Pointed from its Home Screen icon. It opens in standalone mode.
+
+## Persistence check
+
+1. Create a named game with at least two players.
+2. Enter several scores, then use Undo and Redo.
+3. Open History and restore an earlier point.
+4. In Settings, choose a non-system appearance and enable negative scores.
+5. Return Home, remove Pointed from the app switcher, and launch it again from
+   the Home Screen icon.
+6. Confirm the saved game, scores, history, restored state, layout, appearance,
+   and negative-score setting remain available.
+
+Do not clear Safari website data during this test. Web data is local to that
+browser and origin; Pointed has no account or cloud synchronization.
+
+## Verification
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npx expo export -p web
+```
+
+Offline caching is intentionally not configured yet. A network connection is
+currently required to load the exported application files, including when the
+app is launched from the Home Screen.

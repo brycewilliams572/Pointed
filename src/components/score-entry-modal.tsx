@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPlayerColor } from '@/constants/player-colors';
 import { useSettings } from '@/context/settings-context';
 import { useTheme } from '@/hooks/use-theme';
+import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { getScoreChangeError, MAX_SCORE, parseScoreInput, SCORE_PRESETS } from '@/services/scoring';
 import type { Player } from '@/types/game';
 
@@ -46,7 +47,8 @@ export function ScoreEntryModal({ player, onSubmit, onClose, submitError }: Prop
     update({ method: 'manual', input: String(next), custom: current.custom });
   }
 
-  function cancel() { if (!submitted.current) onClose(); }
+  const cancel = useCallback(() => { if (!submitted.current) onClose(); }, [onClose]);
+  useModalDismiss(cancel);
 
   async function confirm() {
     if (submitted.current) return;

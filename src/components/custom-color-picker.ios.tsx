@@ -1,4 +1,4 @@
-﻿import { ColorPicker, Host } from '@expo/ui/swift-ui';
+import { ColorPicker, Host } from '@expo/ui/swift-ui';
 import { accessibilityLabel, frame, labelsHidden, scaleEffect } from '@expo/ui/swift-ui/modifiers';
 
 import { normalizePlayerColor } from '@/constants/player-colors';

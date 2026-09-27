@@ -6,8 +6,8 @@ export type DatabaseConnection = Pick<SQLiteDatabase,
 export async function migrateDatabase(db: DatabaseConnection) {
   await db.execAsync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
   const version = (await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))?.user_version ?? 0;
-  if (version > 2) throw new Error('This database was created by a newer version of Pointed.');
-  if (version === 2) return;
+  if (version > 3) throw new Error('This database was created by a newer version of Pointed.');
+  if (version === 3) return;
   await db.withTransactionAsync(async () => {
     if (version === 0) await db.execAsync(`
       CREATE TABLE games (
@@ -52,7 +52,7 @@ export async function migrateDatabase(db: DatabaseConnection) {
     `);
     // Preserve the v1 audit log and IDs. Legacy undone actions stay archived:
     // v1 did not persist a redo branch, so it cannot be inferred reliably.
-    await db.execAsync(`
+    if (version <= 1) await db.execAsync(`
       CREATE TABLE score_actions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         game_id TEXT NOT NULL REFERENCES games(id),
@@ -93,6 +93,16 @@ export async function migrateDatabase(db: DatabaseConnection) {
       CREATE INDEX events_batch ON score_events(game_id, batch_id);
       CREATE INDEX actions_game ON score_actions(game_id, state, id DESC);
       PRAGMA user_version = 2;
+    `);
+    await db.execAsync(`
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+      INSERT INTO settings (key, value) VALUES
+        ('appearance', 'system'),
+        ('allowNegativeScores', 'false');
+      PRAGMA user_version = 3;
     `);
   });
 }

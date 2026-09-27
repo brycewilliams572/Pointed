@@ -1,8 +1,9 @@
-﻿import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getPlayerColor } from '@/constants/player-colors';
+import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 import { useTheme } from '@/hooks/use-theme';
 
 export type CustomColorPickerProps = {
@@ -22,12 +23,14 @@ export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorP
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const selected = getPlayerColor(color);
+  const close = useCallback(() => setOpen(false), []);
+  useModalDismiss(close, open);
   return (
     <>
       <Pressable accessibilityRole="button" accessibilityLabel={`Choose custom color for ${playerLabel}`} onPress={() => setOpen(true)} style={[styles.circle, { backgroundColor: color, borderColor: theme.textSecondary }]}>
         <Text maxFontSizeMultiplier={1} style={[styles.symbol, { color: selected.foreground }]}>+</Text>
       </Pressable>
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+      <Modal visible={open} animationType="slide" onRequestClose={close}>
         <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }]}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Choose a color for {playerLabel}</Text>
@@ -38,7 +41,7 @@ export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorP
                 </Pressable>
               ))}
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Cancel color selection" onPress={() => setOpen(false)} style={styles.cancel}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Cancel color selection" onPress={close} style={styles.cancel}>
               <Text style={[styles.heading, { color: theme.text }]}>Cancel</Text>
             </Pressable>
           </ScrollView>

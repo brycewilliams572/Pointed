@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/hooks/use-theme';
@@ -12,6 +12,11 @@ export default function HomeScreen() {
   const isDark = colors.background === '#000000';
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
+  // Static rendering reports zero dimensions before a browser viewport exists.
+  // Use the design viewport for that pass so the exported HTML remains usable
+  // and hydrates without invalid negative font/image sizes.
+  const viewportWidth = width > 0 ? width : 390;
+  const viewportHeight = height > 0 ? height : 844;
   const [fontsLoaded] = useFonts({
     'Home-Jaro': require('../../assets/fonts/home/Jaro.ttf'),
     'Home-JockeyOne': require('../../assets/fonts/home/JockeyOne-Regular.ttf'),
@@ -25,7 +30,8 @@ export default function HomeScreen() {
   // Balance padding around the actions to retain Figma's full-screen centering.
   // On short screens or with large text, the content can grow and scroll.
   const contentInset = Math.max(toolbarTop + 80, insets.bottom + 24);
-  const titleScale = Math.min(1, (width - insets.left - insets.right - 48) / 342);
+  const titleWidth = Platform.OS === 'web' ? 430 : 342;
+  const titleScale = Math.max(0.7, Math.min(1, (viewportWidth - insets.left - insets.right - 48) / titleWidth));
 
   return (
     <View style={[styles.screen, { backgroundColor: background }]}>
@@ -34,15 +40,19 @@ export default function HomeScreen() {
         contentFit="fill"
         accessible={false}
         pointerEvents="none"
-        style={[styles.pattern, { width: width * (385.4866 / 390), height: height - 3 }]}
+        style={[styles.pattern, { width: viewportWidth * (385.4866 / 390), height: viewportHeight - 3 }]}
       />
       <SafeAreaView edges={['left', 'right']} style={styles.screen}>
-        <ScrollView contentContainerStyle={[styles.content, {
-          minHeight: height,
+        <ScrollView contentContainerStyle={[styles.content, Platform.OS === 'web' && styles.webContent, {
+          minHeight: viewportHeight,
           paddingTop: contentInset,
           paddingBottom: contentInset,
         }]}>
-          <View style={styles.home}>
+          <View style={[
+            styles.home,
+            Platform.OS === 'web' && styles.webHome,
+            Platform.OS === 'web' && { width: Math.max(272, Math.min(440, viewportWidth - 48)) },
+          ]}>
             <View style={styles.heading}>
               <Text accessibilityRole="header" style={[
                 styles.title,
@@ -87,13 +97,13 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </ScrollView>
-        <View style={[styles.toolbar, { top: toolbarTop }]}>
+        <View style={[styles.toolbar, Platform.OS === 'web' && styles.webToolbar, { top: toolbarTop }]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Settings"
             accessibilityHint="Opens the Settings screen."
             onPress={() => router.navigate('/settings')}
-            style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.settingsButton, Platform.OS === 'web' && styles.webSettingsButton, pressed && styles.pressed]}>
             <Text style={[styles.settingsLabel, interfaceFont, { color: foreground }]}>Settings</Text>
           </Pressable>
         </View>
@@ -118,6 +128,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingTop: 8,
+    zIndex: 2,
+  },
+  webToolbar: {
+    paddingHorizontal: 0,
   },
   settingsButton: {
     minHeight: 48,
@@ -127,6 +141,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
+  },
+  webSettingsButton: {
+    marginRight: 16,
   },
   settingsLabel: {
     fontSize: 16,
@@ -138,11 +155,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  webContent: {
+    paddingHorizontal: 0,
+  },
   home: {
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
     gap: 16,
+  },
+  webHome: {
+    maxWidth: 440,
   },
   heading: {
     alignItems: 'center',

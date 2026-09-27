@@ -1,7 +1,8 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/use-theme';
+import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 
 type Props = { title: string; description: string; actionLabel: string; onConfirm: () => Promise<boolean>; onClose: () => void; children?: ReactNode };
 
@@ -10,7 +11,8 @@ export function ConfirmActionModal({ title, description, actionLabel, onConfirm,
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
-  function cancel() { if (!pending.current) onClose(); }
+  const cancel = useCallback(() => { if (!pending.current) onClose(); }, [onClose]);
+  useModalDismiss(cancel);
   async function confirm() {
     if (pending.current) return;
     pending.current = true;

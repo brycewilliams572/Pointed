@@ -30,15 +30,18 @@ export const gameFonts = StyleSheet.create({
 
 export function GameScreenBackground() {
   const { width, height } = useWindowDimensions();
+  const viewportWidth = width > 0 ? width : 390;
+  const viewportHeight = height > 0 ? height : 844;
   return <Image source={require('../../assets/images/game/dot-pattern.svg')} accessible={false}
-    contentFit="fill" style={{ position: 'absolute', top: 3, left: 2, width: width * (385.4866 / 390), height: height - 3, pointerEvents: 'none' }} />;
+    pointerEvents="none" contentFit="fill"
+    style={{ position: 'absolute', top: 3, left: 2, width: viewportWidth * (385.4866 / 390), height: viewportHeight - 3 }} />;
 }
 
 export function GameScreenHeader({ title, settings = false, fontsLoaded }: { title: string; settings?: boolean; fontsLoaded: boolean }) {
   const theme = useTheme();
   const router = useRouter();
   return <View style={[styles.header, { backgroundColor: theme.backgroundElement }]}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.headerAction}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={styles.headerAction}>
       <Text style={[styles.headerLabel, fontsLoaded && gameFonts.regular, { color: theme.text }]}>‹ Back</Text>
     </Pressable>
     <Text accessibilityRole="header" numberOfLines={1} style={[styles.headerTitle, fontsLoaded && gameFonts.semibold, { color: theme.text }]}>{title}</Text>

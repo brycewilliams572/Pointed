@@ -21,10 +21,30 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Pointed",
+      "shortName": "Pointed",
+      "lang": "en",
+      "scope": "/",
+      "themeColor": "#1F1E4D",
+      "backgroundColor": "#FFFFFF",
+      "description": "A flexible scoreboard for anything you want to track.",
+      "display": "standalone",
+      "startUrl": "/",
+      "orientation": "any",
+      "barStyle": "default"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "headers": {
+            "Cross-Origin-Embedder-Policy": "credentialless",
+            "Cross-Origin-Opener-Policy": "same-origin"
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -38,6 +58,17 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "headers": {
+          "Cross-Origin-Embedder-Policy": "credentialless",
+          "Cross-Origin-Opener-Policy": "same-origin"
+        }
+      },
+      "eas": {
+        "projectId": "15b9cabf-cf48-461f-9a4c-6c4ecb1a80f0"
+      }
     }
   }
 }

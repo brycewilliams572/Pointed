@@ -10,6 +10,8 @@ import type { DatabaseConnection } from './migrations';
 export class GameOperationError extends Error {}
 
 type GameRow = { id: string; name: string | null; layout: ScoreboardLayout; createdAt: number; updatedAt: number; startingScore: number };
+export type StoredSettings = { appearance: 'system' | 'light' | 'dark'; allowNegativeScores: boolean };
+export type SettingKey = keyof StoredSettings;
 
 // Owns all access to this database connection. Reads and writes share one queue so
 // an unrelated query cannot accidentally join another operation's async transaction.
@@ -62,6 +64,28 @@ export class GameRepository {
 
   loadGame(gameId: string): Promise<GameSnapshot> {
     return this.enqueue(() => this.snapshot(gameId));
+  }
+
+  loadSettings(): Promise<StoredSettings> {
+    return this.enqueue(async () => {
+      const rows = await this.db.getAllAsync<{ key: string; value: string }>('SELECT key, value FROM settings');
+      const values = new Map(rows.map((row) => [row.key, row.value]));
+      const appearance = values.get('appearance');
+      return {
+        appearance: appearance === 'light' || appearance === 'dark' ? appearance : 'system',
+        allowNegativeScores: values.get('allowNegativeScores') === 'true',
+      };
+    });
+  }
+
+  setSetting<Key extends SettingKey>(key: Key, value: StoredSettings[Key]): Promise<void> {
+    return this.enqueue(async () => {
+      await this.db.runAsync(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        key,
+        String(value),
+      );
+    });
   }
 
   createGame(draft: Pick<Game, 'name' | 'players'>): Promise<GameSnapshot> {

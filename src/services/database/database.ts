@@ -1,4 +1,4 @@
-﻿import { openDatabaseAsync } from 'expo-sqlite';
+import { openDatabaseAsync } from 'expo-sqlite';
 
 import { GameRepository } from './game-repository';
 import { migrateDatabase } from './migrations';
@@ -22,4 +22,12 @@ export function getGameRepository(): Promise<GameRepository> {
     });
   }
   return pending;
+}
+
+export function getBrowserStorageError(error: unknown): string | null {
+  if (process.env.EXPO_OS !== 'web' || !(error instanceof Error)) return null;
+  if (!/navigator\.storage|secure context|access handle|opfs|vfs|sharedarraybuffer/i.test(error.message)) {
+    return null;
+  }
+  return 'Browser storage is unavailable. Open Pointed over HTTPS in a regular (non-Private) browser window, then try again.';
 }

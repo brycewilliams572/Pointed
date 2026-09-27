@@ -62,7 +62,10 @@ function load(relative) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const localRequire = (name) => {
-    if (name === '@/services/database/database') return { getGameRepository: () => repository };
+    if (name === '@/services/database/database') return {
+      getGameRepository: () => repository,
+      getBrowserStorageError: () => null,
+    };
     if (name === 'react') return reactMock;
     if (name === 'expo-symbols') return { SymbolView: 'SymbolView' };
     if (name === 'expo-font') return { useFonts: () => [true, null] };
@@ -149,7 +152,8 @@ for (const count of [1, 4, 16]) {
       }
     }
     let opened;
-    const card = PlayerCard({ player: context.game.players[0], layout: 'grid', onPress: (player) => { opened = player; } });
+    const PlayerCardComponent = typeof PlayerCard === 'function' ? PlayerCard : PlayerCard.type;
+    const card = PlayerCardComponent({ player: context.game.players[0], layout: 'grid', onPress: (player) => { opened = player; } });
     assert.equal(nodes(card).filter((node) => node.type === 'Pressable').length, 1);
     button(card, 'Player 1, score 120').onPress();
     assert.equal(opened.id, playerId);
@@ -375,7 +379,7 @@ test('scoreboard keeps the same toolbar structure and card keys while saving', a
   assert.deepEqual(nodes(savingTree).map((node) => node.key), nodes(tree).map((node) => node.key));
 });
 
-test('session appearance, negative toggle, and provider integration', async () => {
+test('appearance, negative toggle, and provider integration', async () => {
   const renderSettings = mount(SettingsProvider);
   settings = renderSettings().props.value;
   assert.equal(settings.appearance, 'system');

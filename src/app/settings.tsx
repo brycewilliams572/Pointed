@@ -1,4 +1,4 @@
-﻿import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -8,7 +8,7 @@ import { useTheme } from '@/hooks/use-theme';
 export default function SettingsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { appearance, setAppearance, allowNegativeScores, setAllowNegativeScores } = useSettings();
+  const { appearance, setAppearance, allowNegativeScores, setAllowNegativeScores, settingsError } = useSettings();
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -40,7 +40,8 @@ export default function SettingsScreen() {
           <Text style={[styles.message, { color: theme.textSecondary }]}>
             You can always subtract points. When off, totals stop at 0. When on, totals can go below 0. Existing scores stay unchanged until you edit them.
           </Text>
-          <Text style={[styles.message, { color: theme.textSecondary }]}>Settings reset when the app fully reloads.</Text>
+          <Text style={[styles.message, { color: theme.textSecondary }]}>Settings are saved on this device.</Text>
+          {settingsError ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{settingsError}</Text> : null}
         </View>
       </ScrollView>
     </SafeAreaView>

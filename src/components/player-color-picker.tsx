@@ -1,4 +1,4 @@
-﻿import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CustomColorPicker } from '@/components/custom-color-picker';
 import { getPlayerColor, PLAYER_COLORS } from '@/constants/player-colors';

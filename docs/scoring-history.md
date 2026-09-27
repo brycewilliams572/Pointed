@@ -32,7 +32,7 @@ Player IDs/order stay stable, and the score text has a reserved height that
 scales with system text size. Score-dependent text fitting cannot resize a card.
 Editing controls live in the modal rather than in each card.
 
-## Schema version 2
+## Schema versions 2 and 3
 
 Version 1 games and players remain intact. The migration adds `score_actions`:
 
@@ -62,8 +62,12 @@ undone actions are archived as abandoned, retaining their audit history and
 historical restore points. They do not acquire a speculative Redo path: v1 did
 not store one. New Undo/Redo operations are fully persistent after migration.
 
-Initialization still shares one promise. The migration and `user_version = 2`
-update commit together, failures roll back, and a newer schema is refused.
+Initialization still shares one promise. The schema update commits with its
+corresponding migration, failures roll back, and a newer schema is refused.
+
+Schema version 3 adds the `settings` table. Appearance and the negative-score
+preference now use the same queued SQLite connection as game data and persist
+across native launches and browser sessions.
 
 ## Undo, Redo, and restoration
 
@@ -116,5 +120,5 @@ multi-player restoration, branch invalidation, deletion rollback, and orphan che
 Native pixel layout, screen-reader focus, keyboard behavior, and gestures still
 need device testing. History remains fully loaded per game; pagination or cached
 checkpoints may be useful for very long sessions. Appearance and negative-score
-preferences remain session-only. There is no player editing/deletion feature in
+preferences persist in SQLite. There is no player editing/deletion feature in
 this scope; historical player metadata is not snapshotted.

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 
 import { useSettings } from '@/context/settings-context';
-import { getGameRepository } from '@/services/database/database';
+import { getBrowserStorageError, getGameRepository } from '@/services/database/database';
 import { GameOperationError, type GameRepository } from '@/services/database/game-repository';
 import { ScoreService } from '@/services/scoring';
 import type { Game } from '@/types/game';
@@ -36,6 +36,8 @@ const GameContext = createContext<GameContextValue | null>(null);
 
 function messageFor(error: unknown, fallback: string) {
   if (error instanceof GameOperationError) return error.message;
+  const browserStorageError = getBrowserStorageError(error);
+  if (browserStorageError) return browserStorageError;
   if (__DEV__) console.error('Pointed local database operation failed:', error);
   return fallback;
 }

@@ -6,4 +6,57 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
+  color-scheme: light dark;
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+}
+
+html {
+  background: #ffffff;
+  overscroll-behavior: none;
+}
+
+body {
+  min-width: 320px;
+  background: #ffffff;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+[role='button']:not([aria-disabled='true']),
+[role='radio']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
+[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 3px solid #208aef;
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  html,
+  body {
+    background: #000000;
+  }
 }
