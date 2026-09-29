@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { AccessibilityInfo, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useReducedMotion } from 'react-native-reanimated';
 import { getPlayerColor } from '@/constants/player-colors';
 import { useSettings } from '@/context/settings-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -18,6 +19,7 @@ type Props = {
 
 export function ScoreEntryModal({ player, onSubmit, onClose, submitError }: Props) {
   const theme = useTheme();
+  const reduceMotion = useReducedMotion();
   const color = getPlayerColor(player.color);
   const { allowNegativeScores } = useSettings();
   const [draft, setDraft] = useState<Draft>({ method: 'manual', input: '0', custom: false });
@@ -73,7 +75,7 @@ export function ScoreEntryModal({ player, onSubmit, onClose, submitError }: Prop
   }
 
   return (
-    <Modal visible animationType="slide" onRequestClose={cancel}>
+    <Modal visible animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={cancel}>
       <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }]}>
         <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>

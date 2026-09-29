@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, ReduceMotion, useReducedMotion } from 'react-native-reanimated';
 import { useTheme } from '@/hooks/use-theme';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
 
@@ -8,6 +9,7 @@ type Props = { title: string; description: string; actionLabel: string; onConfir
 
 export function ConfirmActionModal({ title, description, actionLabel, onConfirm, onClose, children }: Props) {
   const theme = useTheme();
+  const reduceMotion = useReducedMotion();
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -25,9 +27,12 @@ export function ConfirmActionModal({ title, description, actionLabel, onConfirm,
     finally { pending.current = false; setBusy(false); }
   }
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={cancel}>
+    <Modal visible transparent animationType={reduceMotion ? 'none' : 'fade'} onRequestClose={cancel}>
       <SafeAreaView style={styles.overlay}>
-        <View accessibilityViewIsModal style={[styles.panel, { backgroundColor: theme.background }]}>
+        <Animated.View
+          entering={FadeInDown.duration(160).reduceMotion(ReduceMotion.System)}
+          accessibilityViewIsModal
+          style={[styles.panel, { backgroundColor: theme.background }]}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{title}</Text>
             <Text style={[styles.text, { color: theme.textSecondary }]}>{description}</Text>
@@ -40,7 +45,7 @@ export function ConfirmActionModal({ title, description, actionLabel, onConfirm,
                 style={[styles.button, { backgroundColor: '#B91C1C' }]}><Text style={[styles.text, { color: '#FFFFFF' }]}>{busy ? 'Saving...' : actionLabel}</Text></Pressable>
             </View>
           </ScrollView>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </Modal>
   );

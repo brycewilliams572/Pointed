@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useReducedMotion } from 'react-native-reanimated';
 
 import { GameProvider } from '@/context/game-context';
 import { SettingsProvider } from '@/context/settings-context';
@@ -16,6 +17,7 @@ export default function RootLayout() {
 function RootNavigator() {
   const isDark = useAppColorScheme() === 'dark';
   const colors = useTheme();
+  const reduceMotion = useReducedMotion();
 
   return (
     <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
@@ -28,6 +30,7 @@ function RootNavigator() {
             headerShadowVisible: false,
             contentStyle: { backgroundColor: colors.background },
             headerBackTitle: 'Back',
+            animation: reduceMotion ? 'none' : 'default',
           }}>
           <Stack.Screen name="index" options={{ title: 'Pointed', headerShown: false }} />
           <Stack.Screen name="new-game" options={{ title: 'New Game' }} />

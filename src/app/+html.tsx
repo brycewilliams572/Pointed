@@ -23,6 +23,14 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="format-detection" content="telephone=no" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+        <style dangerouslySetInnerHTML={{ __html: `
+          [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+          [role="button"][aria-disabled="true"] { cursor: default; }
+          [role="button"]:not([aria-disabled="true"]):active { opacity: 0.78; }
+          @media (prefers-reduced-motion: no-preference) {
+            [role="button"] { transition: opacity 90ms ease-out; }
+          }
+        ` }} />
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>

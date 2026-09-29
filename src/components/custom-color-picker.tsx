@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useReducedMotion } from 'react-native-reanimated';
 
 import { getPlayerColor } from '@/constants/player-colors';
 import { useModalDismiss } from '@/hooks/use-modal-dismiss';
@@ -21,6 +22,7 @@ const CUSTOM_COLORS = [0, 85, 170, 255].flatMap((r) =>
 
 export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorPickerProps) {
   const theme = useTheme();
+  const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const selected = getPlayerColor(color);
   const close = useCallback(() => setOpen(false), []);
@@ -30,7 +32,7 @@ export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorP
       <Pressable accessibilityRole="button" accessibilityLabel={`Choose custom color for ${playerLabel}`} onPress={() => setOpen(true)} style={[styles.circle, { backgroundColor: color, borderColor: theme.textSecondary }]}>
         <Text maxFontSizeMultiplier={1} style={[styles.symbol, { color: selected.foreground }]}>+</Text>
       </Pressable>
-      <Modal visible={open} animationType="slide" onRequestClose={close}>
+      <Modal visible={open} animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={close}>
         <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }]}>
           <ScrollView contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Choose a color for {playerLabel}</Text>

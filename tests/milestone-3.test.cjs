@@ -72,6 +72,22 @@ function load(relative) {
     if (name === 'expo-image') return { Image: 'Image' };
     if (/\.(ttf|svg)$/.test(name)) return name;
     if (name === 'react-native') return native;
+    if (name === 'react-native-reanimated') {
+      const timing = (value) => value;
+      const entering = { duration() { return this; }, reduceMotion() { return this; } };
+      return {
+        __esModule: true,
+        default: { View: 'AnimatedView', Text: 'AnimatedText' },
+        Easing: { cubic: (value) => value, out: (value) => value },
+        FadeInDown: entering,
+        ReduceMotion: { System: 'system' },
+        useAnimatedStyle: (factory) => factory(),
+        useReducedMotion: () => false,
+        useSharedValue: (value) => ({ value }),
+        withSequence: (...values) => values.at(-1),
+        withTiming: timing,
+      };
+    }
     if (name === 'react-native-safe-area-context') return { SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) };
     if (name === 'expo-router') return { Stack: { Screen: 'StackScreen' }, useFocusEffect() {}, useLocalSearchParams: () => ({}), useRouter: () => ({ navigate: (route) => navigation.push(route), push: (route) => navigation.push(route), replace: (route) => navigation.push(route) }) };
     if (name === 'expo-router/react-navigation') return { useHeaderHeight: () => 64 };
