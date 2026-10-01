@@ -15,7 +15,11 @@ export function PlaceholderScreen({ message }: PlaceholderScreenProps) {
     <SafeAreaView
       edges={['left', 'right', 'bottom']}
       style={[styles.screen, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        bounces={false}
+        overScrollMode="never"
+        contentContainerStyle={styles.content}>
         <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
       </ScrollView>
     </SafeAreaView>

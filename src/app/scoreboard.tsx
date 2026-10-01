@@ -22,14 +22,15 @@ export default function ScoreboardScreen() {
   const insets = useSafeAreaInsets();
   const appearance = useGameScreenAppearance();
   const grid = layout === 'grid';
-  const semibold = grid && appearance.fontsLoaded && gameFonts.semibold;
+  const semibold = appearance.fontsLoaded && gameFonts.semibold;
   const [contentWidth, setContentWidth] = useState(0);
   const [entry, setEntry] = useState<Player | null>(null);
   useFocusEffect(useCallback(() => { if (gameId) void openGame(gameId); }, [gameId, openGame]));
   useEffect(() => {
     if (scoreError) AccessibilityInfo.announceForAccessibility(scoreError);
   }, [scoreError]);
-  const availableWidth = contentWidth || Math.min(1168, width - insets.left - insets.right - 32);
+  const horizontalInset = grid ? 42 : 32;
+  const availableWidth = contentWidth || Math.min(1168, width - insets.left - insets.right - horizontalInset);
   const columns = layout === 'list' ? 1 : getGridColumns(availableWidth, game?.players.length ?? 1, fontScale);
   const cardWidth = (availableWidth - 12 * (columns - 1)) / columns;
   const modeControls = (
@@ -39,8 +40,9 @@ export default function ScoreboardScreen() {
           accessibilityLabel={`${mode === 'grid' ? 'Grid' : 'List'} view`}
           accessibilityState={{ selected: layout === mode }} onPress={() => setLayout(mode)}
           style={({ pressed }) => [styles.modeButton, grid && styles.gridModeButton,
-            { backgroundColor: layout === mode ? theme.text : theme.backgroundElement }, pressed && styles.pressed]}>
-          <Text style={[styles.label, semibold, grid && styles.gridLabel, { color: layout === mode ? (grid ? appearance.background : theme.background) : theme.text }]}>
+            { backgroundColor: layout === mode ? '#C8C8C8' : theme.backgroundElement },
+            layout === mode && styles.selectedMode, pressed && styles.pressed]}>
+          <Text style={[styles.label, semibold, grid && styles.gridLabel, { color: layout === mode ? '#1F1E4D' : theme.text }]}>
             {mode === 'grid' ? 'Grid' : 'List'}
           </Text>
         </Pressable>
@@ -51,37 +53,46 @@ export default function ScoreboardScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: grid ? appearance.background : theme.background }]}>
       {grid ? <GameScreenBackground /> : null}
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.screen, grid && { paddingTop: Math.max(47, insets.top) }]}>
-      <Stack.Screen options={{ headerShown: !grid, headerRight: () => (
-        <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={styles.modeButton}>
-          <Text style={[styles.label, { color: theme.text }]}>Settings</Text>
-        </Pressable>
-      ) }} />
-      {grid ? <GameScreenHeader title="Scoreboard" settings fontsLoaded={appearance.fontsLoaded} /> : null}
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.screen, { paddingTop: Math.max(47, insets.top) }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <GameScreenHeader
+        title="Scoreboard"
+        trailingLabel="History"
+        trailingAccessibilityLabel="Score History"
+        onTrailingPress={() => game && router.push({ pathname: '/history', params: { gameId: game.id } })}
+        fontsLoaded={appearance.fontsLoaded}
+      />
       {game ? (
-        <View style={[styles.toolbar, { backgroundColor: grid ? 'transparent' : theme.background }]}>
+        <View style={[styles.toolbar, grid ? styles.gridToolbar : styles.listToolbar, { backgroundColor: grid ? 'transparent' : theme.background }]}>
           <Text accessibilityRole="header" numberOfLines={grid ? 1 : undefined} style={[styles.title, grid && styles.gridTitle, grid && appearance.fontsLoaded && gameFonts.bold, { color: theme.text }]}>
             {game.name ?? 'Your game'}
           </Text>
           <View style={[styles.actionRow, grid && styles.gridActionRow]}>
             <UndoRedoControls grid={grid} canUndo={canUndo} canRedo={canRedo} busy={saving || loadingGame} undo={undo} redo={redo} />
             {grid ? modeControls : null}
-            <Pressable accessibilityRole="button" accessibilityLabel="Score History" onPress={() => router.push({ pathname: '/history', params: { gameId: game.id } })} style={[styles.modeButton, grid && styles.gridHistory, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.label, semibold, grid && styles.gridLabel, { color: theme.text }]}>History</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={[styles.modeButton, grid && styles.gridHistory, { backgroundColor: theme.backgroundElement }]}>
+              <Text style={[styles.label, semibold, grid && styles.gridLabel, { color: theme.text }]}>Settings</Text>
             </Pressable>
           </View>
           {!grid ? modeControls : null}
-          <Text numberOfLines={1} accessibilityLiveRegion="polite" style={[styles.status, grid && appearance.fontsLoaded && gameFonts.regular, { color: theme.textSecondary }]}>{saving ? 'Saving...' : loadingGame ? 'Loading...' : 'Tap a player to score'}</Text>
+          <Text numberOfLines={1} accessibilityLiveRegion="polite" style={[styles.status, appearance.fontsLoaded && gameFonts.regular, { color: theme.textSecondary }]}>
+            {saving ? 'Saving...' : loadingGame ? 'Loading...' : ''}
+          </Text>
           {scoreError ? <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.text }]}>{scoreError}</Text> : null}
         </View>
       ) : null}
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        bounces={false}
+        overScrollMode="never"
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, grid ? styles.gridContent : styles.listContent]}>
         <View style={styles.list} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
           {game ? (
             <View style={styles.cards}>
               {game.players.map((player) => (
-                <View key={player.id} style={{ width: cardWidth ?? '100%' }}>
-                  <PlayerCard player={player} layout={layout} onPress={setEntry} disabled={saving || loadingGame} fontsLoaded={grid && appearance.fontsLoaded} />
+                <View key={player.id} style={{ width: cardWidth }}>
+                  <PlayerCard player={player} layout={layout} onPress={setEntry} disabled={saving || loadingGame} fontsLoaded={appearance.fontsLoaded} />
                 </View>
               ))}
             </View>
@@ -112,19 +123,25 @@ export default function ScoreboardScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  toolbar: { width: '100%', maxWidth: 1200, alignSelf: 'center', padding: 16, gap: 12 },
+  scroll: { flex: 1 },
+  toolbar: { width: '100%', maxWidth: 1210, alignSelf: 'center', gap: 12 },
+  gridToolbar: { paddingHorizontal: 21, paddingTop: 16, paddingBottom: 11 },
+  listToolbar: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 11 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
-  status: { fontSize: 14, lineHeight: 20, minHeight: 20 },
-  controls: { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 4, padding: 4, borderRadius: 16 },
-  content: { padding: 16, paddingTop: 0 },
+  status: { fontSize: 14, lineHeight: 20 },
+  controls: { height: 48, flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingTop: 6, paddingBottom: 8, borderRadius: 14 },
+  content: { flexGrow: 1, paddingTop: 0, paddingBottom: 16 },
+  gridContent: { paddingHorizontal: 21 },
+  listContent: { paddingHorizontal: 16 },
   list: { width: '100%', maxWidth: 1168, alignSelf: 'center', gap: 16 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'stretch' },
   title: { fontSize: 28, fontWeight: '700' },
   gridTitle: { lineHeight: 34 },
   gridActionRow: { justifyContent: 'center', gap: 10, marginHorizontal: -1.5, minHeight: 48 },
-  gridModeButton: { width: 64, paddingHorizontal: 0 },
+  gridModeButton: { width: 64, minHeight: 34, paddingHorizontal: 0, paddingVertical: 6, borderRadius: 10 },
   gridHistory: { minWidth: 102 },
   gridLabel: { lineHeight: 22 },
+  selectedMode: { boxShadow: '3px 3px 0px #434267' },
   message: { fontSize: 18, lineHeight: 28 },
   button: { minHeight: 56, padding: 16, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   modeButton: { minHeight: 48, minWidth: 64, padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

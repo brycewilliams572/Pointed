@@ -33,7 +33,11 @@ export function ConfirmActionModal({ title, description, actionLabel, onConfirm,
           entering={FadeInDown.duration(160).reduceMotion(ReduceMotion.System)}
           accessibilityViewIsModal
           style={[styles.panel, { backgroundColor: theme.background }]}>
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView
+            alwaysBounceVertical={false}
+            bounces={false}
+            overScrollMode="never"
+            contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{title}</Text>
             <Text style={[styles.text, { color: theme.textSecondary }]}>{description}</Text>
             {children}

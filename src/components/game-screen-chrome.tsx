@@ -1,13 +1,15 @@
 import { useFonts } from 'expo-font';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
+import { useAppColorScheme } from '@/hooks/use-app-color-scheme';
 
 // Opt-in presentation for New Game and Scoreboard Grid, not global theme tokens.
 export function useGameScreenAppearance() {
   const theme = useTheme();
+  const colorScheme = useAppColorScheme();
   const [fontsLoaded] = useFonts({
     'Game-Inter': require('../../assets/fonts/game/Inter-400Regular.ttf'),
     'Game-Inter-SemiBold': require('../../assets/fonts/home/Inter-SemiBold.ttf'),
@@ -15,8 +17,7 @@ export function useGameScreenAppearance() {
   });
   return {
     ...theme,
-    background: theme.background === '#000000' ? '#1F1E4D' : theme.background,
-    buttonBackground: theme.background === '#000000' ? '#FFFFFF' : theme.backgroundElement,
+    buttonBackground: colorScheme === 'dark' ? '#FFFFFF' : theme.backgroundElement,
     buttonText: '#1F1E4D',
     fontsLoaded,
   };
@@ -29,15 +30,26 @@ export const gameFonts = StyleSheet.create({
 });
 
 export function GameScreenBackground() {
-  const { width, height } = useWindowDimensions();
-  const viewportWidth = width > 0 ? width : 390;
-  const viewportHeight = height > 0 ? height : 844;
   return <Image source={require('../../assets/images/game/dot-pattern.svg')} accessible={false}
     pointerEvents="none" contentFit="fill"
-    style={{ position: 'absolute', top: 3, left: 2, width: viewportWidth * (385.4866 / 390), height: viewportHeight - 3 }} />;
+    style={styles.background} />;
 }
 
-export function GameScreenHeader({ title, settings = false, fontsLoaded }: { title: string; settings?: boolean; fontsLoaded: boolean }) {
+export function GameScreenHeader({
+  title,
+  settings = false,
+  trailingLabel,
+  trailingAccessibilityLabel,
+  onTrailingPress,
+  fontsLoaded,
+}: {
+  title: string;
+  settings?: boolean;
+  trailingLabel?: string;
+  trailingAccessibilityLabel?: string;
+  onTrailingPress?: () => void;
+  fontsLoaded: boolean;
+}) {
   const theme = useTheme();
   const router = useRouter();
   return <View style={[styles.header, { backgroundColor: theme.backgroundElement }]}>
@@ -45,14 +57,19 @@ export function GameScreenHeader({ title, settings = false, fontsLoaded }: { tit
       <Text style={[styles.headerLabel, fontsLoaded && gameFonts.regular, { color: theme.text }]}>‹ Back</Text>
     </Pressable>
     <Text accessibilityRole="header" numberOfLines={1} style={[styles.headerTitle, fontsLoaded && gameFonts.semibold, { color: theme.text }]}>{title}</Text>
-    {settings ? <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={styles.headerAction}>
-      <Text style={[styles.headerLabel, fontsLoaded && gameFonts.regular, { color: theme.text }]}>Settings</Text>
+    {settings || trailingLabel ? <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={trailingAccessibilityLabel ?? trailingLabel ?? 'Settings'}
+      onPress={onTrailingPress ?? (() => router.push('/settings'))}
+      style={styles.headerAction}>
+      <Text style={[styles.headerLabel, fontsLoaded && gameFonts.regular, { color: theme.text }]}>{trailingLabel ?? 'Settings'}</Text>
     </Pressable> : <View style={styles.headerAction} />}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  header: { marginHorizontal: 21, minHeight: 44, borderRadius: 8, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center' },
+  background: { position: 'absolute', top: 3, bottom: 0, left: 2, width: '98.8427%' },
+  header: { marginHorizontal: 21, height: 44, borderRadius: 8, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center' },
   headerAction: { minHeight: 44, minWidth: 70, justifyContent: 'center', alignItems: 'center' },
   headerLabel: { fontSize: 17, lineHeight: 21 },
   headerTitle: { flex: 1, fontSize: 17, lineHeight: 21, fontWeight: '600', textAlign: 'center' },

@@ -1,215 +1,194 @@
-import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { Image } from 'expo-image';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/hooks/use-theme';
+import { HomeArtwork } from '@/components/home-artwork';
+
+const DESIGN_WIDTH = 390;
+const HERO_HEIGHT = 560;
 
 export default function HomeScreen() {
-  const colors = useTheme();
   const router = useRouter();
-  const isDark = colors.background === '#000000';
   const insets = useSafeAreaInsets();
-  const { height, width } = useWindowDimensions();
-  // Static rendering reports zero dimensions before a browser viewport exists.
-  // Use the design viewport for that pass so the exported HTML remains usable
-  // and hydrates without invalid negative font/image sizes.
-  const viewportWidth = width > 0 ? width : 390;
-  const viewportHeight = height > 0 ? height : 844;
+  const { width } = useWindowDimensions();
+  const viewportWidth = width > 0 ? width : DESIGN_WIDTH;
+  const availableWidth = Math.max(1, viewportWidth - insets.left - insets.right);
+  const scale = Math.min(1, availableWidth / DESIGN_WIDTH);
+  const canvasWidth = DESIGN_WIDTH * scale;
   const [fontsLoaded] = useFonts({
-    'Home-Jaro': require('../../assets/fonts/home/Jaro.ttf'),
-    'Home-JockeyOne': require('../../assets/fonts/home/JockeyOne-Regular.ttf'),
-    'Home-Inter': require('../../assets/fonts/home/Inter-SemiBold.ttf'),
+    'Home-ArchivoBlack': require('../../assets/fonts/home/ArchivoBlack-Regular.ttf'),
+    'Home-GeistMonoBlack': require('../../assets/fonts/home/GeistMono-Black.ttf'),
   });
-  const background = isDark ? '#1F1E4D' : colors.background;
-  const foreground = isDark ? colors.text : '#1F1E4D';
-  const buttonBackground = isDark ? colors.text : colors.backgroundElement;
-  const interfaceFont = fontsLoaded ? styles.interfaceFont : undefined;
-  const toolbarTop = Math.max(140, insets.top + 8);
-  // Balance padding around the actions to retain Figma's full-screen centering.
-  // On short screens or with large text, the content can grow and scroll.
-  const contentInset = Math.max(toolbarTop + 80, insets.bottom + 24);
-  const titleWidth = Platform.OS === 'web' ? 430 : 342;
-  const titleScale = Math.max(0.7, Math.min(1, (viewportWidth - insets.left - insets.right - 48) / titleWidth));
 
   return (
-    <View style={[styles.screen, { backgroundColor: background }]}>
-      <Image
-        source={require('../../assets/images/home/dot-pattern.svg')}
-        contentFit="fill"
-        accessible={false}
-        pointerEvents="none"
-        style={[styles.pattern, { width: viewportWidth * (385.4866 / 390), height: viewportHeight - 3 }]}
-      />
-      <SafeAreaView edges={['left', 'right']} style={styles.screen}>
-        <ScrollView contentContainerStyle={[styles.content, Platform.OS === 'web' && styles.webContent, {
-          minHeight: viewportHeight,
-          paddingTop: contentInset,
-          paddingBottom: contentInset,
-        }]}>
-          <View style={[
-            styles.home,
-            Platform.OS === 'web' && styles.webHome,
-            Platform.OS === 'web' && { width: Math.max(272, Math.min(440, viewportWidth - 48)) },
-          ]}>
-            <View style={styles.heading}>
-              <Text accessibilityRole="header" style={[
-                styles.title,
-                fontsLoaded && styles.titleFont,
-                { color: foreground, fontSize: 96 * titleScale, lineHeight: 120 * titleScale },
-              ]}>
-                Pointed
+    <View style={styles.screen}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        bounces={false}
+        overScrollMode="never"
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}>
+        <View style={[styles.hero, { height: HERO_HEIGHT * scale }]}>
+          <View style={{ width: canvasWidth, height: HERO_HEIGHT * scale }}>
+            <HomeArtwork fontsLoaded={fontsLoaded} scale={scale} />
+            <View style={[styles.topActions, {
+              left: 24 * scale,
+              right: 24 * scale,
+              top: Math.max(51 * scale, insets.top + 4),
+              height: 45 * scale,
+            }]}>
+              <Text
+                maxFontSizeMultiplier={1}
+                style={[
+                  styles.version,
+                  fontsLoaded && styles.geist,
+                  { fontSize: 14 * scale, lineHeight: 18 * scale },
+                ]}>
+                v1.0
               </Text>
-              <Text style={[
-                styles.subtitle,
-                fontsLoaded && styles.subtitleFont,
-                { color: foreground },
-              ]}>
-                Score Anything
-              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                accessibilityHint="Opens the Settings screen."
+                hitSlop={8}
+                onPress={() => router.navigate('/settings')}
+                style={({ pressed }) => pressed && styles.pressed}>
+                <Text
+                  maxFontSizeMultiplier={1}
+                  style={[
+                    styles.settings,
+                    fontsLoaded && styles.geist,
+                    { fontSize: 16 * scale, lineHeight: 21 * scale },
+                  ]}>
+                  Settings
+                </Text>
+              </Pressable>
             </View>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="New Game"
-              accessibilityHint="Opens the New Game screen."
-              onPress={() => router.navigate('/new-game')}
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: buttonBackground },
-                pressed && styles.pressed,
-              ]}>
-              <Text style={[styles.buttonLabel, interfaceFont, styles.buttonText]}>New Game</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Continue Game"
-              accessibilityHint="Opens Saved Games."
-              onPress={() => router.navigate('/games')}
-              style={({ pressed }) => [
-                styles.button,
-                { backgroundColor: buttonBackground },
-                pressed && styles.pressed,
-              ]}>
-              <Text style={[styles.buttonLabel, interfaceFont, styles.buttonText]}>Continue Game</Text>
-            </Pressable>
           </View>
-        </ScrollView>
-        <View style={[styles.toolbar, Platform.OS === 'web' && styles.webToolbar, { top: toolbarTop }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            accessibilityHint="Opens the Settings screen."
-            onPress={() => router.navigate('/settings')}
-            style={({ pressed }) => [styles.settingsButton, Platform.OS === 'web' && styles.webSettingsButton, pressed && styles.pressed]}>
-            <Text style={[styles.settingsLabel, interfaceFont, { color: foreground }]}>Settings</Text>
-          </Pressable>
         </View>
-      </SafeAreaView>
+
+        <View style={[styles.actionBlock, { marginTop: 52.75 * scale }]}>
+          {renderHomeAction({
+            label: 'New Game',
+            accessibilityHint: 'Opens the New Game screen.',
+            backgroundColor: '#FFC72C',
+            fontsLoaded,
+            onPress: () => router.navigate('/new-game'),
+          })}
+          {renderHomeAction({
+            label: 'Continue Game',
+            accessibilityHint: 'Opens Saved Games.',
+            backgroundColor: '#FFFFFF',
+            fontsLoaded,
+            onPress: () => router.navigate('/games'),
+          })}
+        </View>
+      </ScrollView>
     </View>
+  );
+}
+
+function renderHomeAction({
+  label,
+  accessibilityHint,
+  backgroundColor,
+  fontsLoaded,
+  onPress,
+}: {
+  label: string;
+  accessibilityHint: string;
+  backgroundColor: string;
+  fontsLoaded: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={accessibilityHint}
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, { backgroundColor }, pressed && styles.pressed]}>
+      <Text
+        maxFontSizeMultiplier={1.4}
+        style={[styles.buttonLabel, fontsLoaded && styles.archivo]}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  pattern: {
-    position: 'absolute',
-    top: 3,
-    left: 2,
-  },
-  toolbar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    zIndex: 2,
-  },
-  webToolbar: {
-    paddingHorizontal: 0,
-  },
-  settingsButton: {
-    minHeight: 48,
-    minWidth: 97,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  webSettingsButton: {
-    marginRight: 16,
-  },
-  settingsLabel: {
-    fontSize: 16,
-    lineHeight: 19,
-    fontWeight: '600',
+  scroll: {
+    flex: 1,
   },
   content: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingBottom: 32,
   },
-  webContent: {
-    paddingHorizontal: 0,
-  },
-  home: {
+  hero: {
     width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1F1E4D',
+    overflow: 'hidden',
+  },
+  topActions: {
+    position: 'absolute',
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  version: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    includeFontPadding: false,
+  },
+  settings: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    textDecorationLine: 'underline',
+    includeFontPadding: false,
+  },
+  actionBlock: {
+    width: '100%',
+    maxWidth: 390,
+    paddingHorizontal: 24,
     gap: 16,
   },
-  webHome: {
-    maxWidth: 440,
-  },
-  heading: {
-    alignItems: 'center',
-    paddingBottom: 43,
-  },
-  title: {
-    fontSize: 96,
-    lineHeight: 120,
-    marginBottom: -11,
-    letterSpacing: -1.5,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 18,
-    lineHeight: 25,
-    textAlign: 'center',
-  },
-  titleFont: {
-    fontFamily: 'Home-Jaro',
-  },
-  subtitleFont: {
-    fontFamily: 'Home-JockeyOne',
-  },
-  interfaceFont: {
-    fontFamily: 'Home-Inter',
-    fontWeight: '400',
-  },
   button: {
-    minHeight: 56,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 9,
-    boxShadow: '5px 5px 0px #2E618C',
+    width: '100%',
+    height: 56,
+    padding: 16,
+    borderWidth: 4,
+    borderColor: '#000000',
+    borderRadius: 0,
+    boxShadow: '5px 5px 0px #000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
   buttonLabel: {
+    color: '#000000',
     fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '600',
+    lineHeight: 20,
+    fontWeight: '900',
     textAlign: 'center',
+    includeFontPadding: false,
   },
-  buttonText: {
-    color: '#1F1E4D',
+  archivo: {
+    fontFamily: 'Home-ArchivoBlack',
+    fontWeight: '400',
+  },
+  geist: {
+    fontFamily: 'Home-GeistMonoBlack',
+    fontWeight: '400',
   },
   pressed: {
     opacity: 0.75,

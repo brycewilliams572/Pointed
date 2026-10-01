@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   badge: { minHeight: 46, paddingLeft: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center' },
   badgeLabel: { flex: 1, paddingVertical: 12, fontSize: 18, lineHeight: 22, fontWeight: '600' },
   label: { fontSize: 16, lineHeight: 19, fontWeight: '600' },
-  input: { minHeight: 48, padding: 12, borderWidth: 1, borderRadius: 10, fontSize: 18, lineHeight: 22 },
+  input: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderRadius: 12, fontSize: 18, lineHeight: 22 },
   message: { fontSize: 16, lineHeight: 24 },
   remove: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   removeIcon: { width: 19, height: 22 },

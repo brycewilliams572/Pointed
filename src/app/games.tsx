@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConfirmActionModal } from '@/components/confirm-action-modal';
+import { GameScreenHeader, gameFonts, useGameScreenAppearance } from '@/components/game-screen-chrome';
 import { useGame } from '@/context/game-context';
 import { useTheme } from '@/hooks/use-theme';
 import type { GameSummary } from '@/types/history';
@@ -11,21 +12,27 @@ export default function GamesScreen() {
   const { activeGames, gamesLoading, gamesError, refreshGames, deleteGame, saving } = useGame();
   const [selected, setSelected] = useState<GameSummary | null>(null);
   const theme = useTheme();
+  const appearance = useGameScreenAppearance();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   useFocusEffect(useCallback(() => { void refreshGames(); }, [refreshGames]));
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.screen, { paddingTop: Math.max(47, insets.top) }]}>
+        <GameScreenHeader title="Saved Games" fontsLoaded={appearance.fontsLoaded} />
       <FlatList data={activeGames} keyExtractor={(game) => game.id} contentContainerStyle={styles.content}
+        alwaysBounceVertical={false} bounces={false} overScrollMode="never"
         ListHeaderComponent={<View style={styles.heading}>
-          <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>Saved Games</Text>
-          <Text style={[styles.text, { color: theme.textSecondary }]}>Choose a game to resume its scoreboard.</Text>
+          <Text accessibilityRole="header" style={[styles.title, appearance.fontsLoaded && gameFonts.bold, { color: theme.text }]}>Saved Games</Text>
+          <Text style={[styles.text, appearance.fontsLoaded && gameFonts.regular, { color: theme.textSecondary }]}>Choose a game to resume its scoreboard.</Text>
           {gamesLoading ? <Text accessibilityLiveRegion="polite" style={[styles.text, { color: theme.textSecondary }]}>Loading saved games...</Text> : null}
           {gamesError ? <><Text accessibilityLiveRegion="polite" style={[styles.text, { color: theme.text }]}>{gamesError}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Retry loading saved games" onPress={() => void refreshGames()} style={styles.button}><Text style={[styles.text, { color: theme.text }]}>Try again</Text></Pressable></> : null}
         </View>}
         ListEmptyComponent={!gamesLoading && !gamesError ? <Text style={[styles.text, { color: theme.textSecondary }]}>No saved games yet. Create a New Game from Home.</Text> : null}
         renderItem={({ item }) => <View style={[styles.game, { backgroundColor: theme.backgroundElement }]}>
-          <Text style={[styles.title, { color: theme.text }]}>{item.name ?? 'Untitled game'}</Text>
+          <Text style={[styles.title, appearance.fontsLoaded && gameFonts.bold, { color: theme.text }]}>{item.name ?? 'Untitled game'}</Text>
           <Text style={[styles.text, { color: theme.textSecondary }]}>{item.playerCount} players · {item.status === 'active' ? 'Active' : 'Completed'}</Text>
           <Text style={[styles.text, { color: theme.textSecondary }]}>Last played {new Date(item.updatedAt).toLocaleString()}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel={`Continue ${item.name ?? 'Untitled game'}`} disabled={saving} accessibilityState={{ disabled: saving }}
@@ -40,7 +47,8 @@ export default function GamesScreen() {
       {selected ? <ConfirmActionModal title={`Delete "${selected.name ?? 'Untitled game'}"?`}
         description="This will permanently delete the game, its players, scores, and score history."
         actionLabel="Delete" onConfirm={() => deleteGame(selected.id)} onClose={() => setSelected(null)} /> : null}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 

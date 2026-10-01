@@ -2,6 +2,8 @@
 
 Used only by `src/app/index.tsx` to match the Figma Home frame.
 
+- Archivo Black Regular: Google Fonts `ofl/archivoblack/ArchivoBlack-Regular.ttf`.
+- Geist Mono Black: Vercel Geist `fonts/GeistMono/ttf/GeistMono-Black.ttf`.
 - Jaro: Google Fonts `ofl/jaro/Jaro[opsz].ttf`, instantiated with fontTools at `opsz=6` to match Figma consistently on native and web.
 - Jockey One Regular: Google Fonts `ofl/jockeyone/JockeyOne-Regular.ttf`.
 - Inter SemiBold: `expo/google-fonts`, `font-packages/inter/600SemiBold/Inter_600SemiBold.ttf`.

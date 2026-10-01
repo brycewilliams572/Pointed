@@ -78,18 +78,25 @@ export function ScoreEntryModal({ player, onSubmit, onClose, submitError }: Prop
     <Modal visible animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={cancel}>
       <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }]}>
         <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+          <ScrollView
+            alwaysBounceVertical={false}
+            bounces={false}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            keyboardShouldPersistTaps="handled"
+            overScrollMode="never"
+            style={styles.scroll}
+            contentContainerStyle={styles.content}>
             <View accessibilityViewIsModal style={styles.form}>
               <View style={[styles.player, { backgroundColor: color.background }]}>
                 <Text accessibilityRole="header" style={[styles.heading, { color: color.foreground }]}>{player.name}</Text>
                 <Text style={[styles.label, { color: color.foreground }]}>Current score: {player.score}</Text>
               </View>
-              <View style={styles.actions}>
+              <View style={styles.methods}>
                 {(['manual', 'set'] as const).map((method) => (
                   <Pressable key={method} accessibilityRole="button" accessibilityLabel={method === 'manual' ? 'Custom Score Change' : 'Set Score'}
                     accessibilityState={{ selected: draft.method === method, disabled: saving }} disabled={saving}
                     onPress={() => update({ method, input: method === 'set' ? String(player.score) : draft.method === 'manual' ? draft.input : '0', custom: true })}
-                    style={[styles.button, { backgroundColor: draft.method === method ? theme.backgroundSelected : theme.backgroundElement }]}>
+                    style={[styles.button, styles.methodButton, { backgroundColor: draft.method === method ? theme.backgroundSelected : theme.backgroundElement }]}>
                     <Text style={[styles.label, { color: theme.text }]}>{method === 'manual' ? 'Custom Score Change' : 'Set Score'}</Text>
                   </Pressable>
                 ))}
@@ -111,7 +118,7 @@ export function ScoreEntryModal({ player, onSubmit, onClose, submitError }: Prop
                   <TextInput accessibilityLabel={draft.method === 'set' ? 'New score' : 'Pending score change'}
                     value={draft.input} editable={!saving} onChangeText={(input) => update({ ...draft, input })}
                     keyboardType="numbers-and-punctuation" autoCorrect={false} selectTextOnFocus returnKeyType="done"
-                    style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]} />
+                    style={[styles.input, { color: theme.text, borderColor: theme.textSecondary, backgroundColor: theme.backgroundElement }]} />
                 </>
               ) : null}
               <View style={[styles.preview, { backgroundColor: theme.backgroundElement }]} accessibilityLiveRegion="polite">
@@ -139,15 +146,18 @@ export function ScoreEntryModal({ player, onSubmit, onClose, submitError }: Prop
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 24 },
+  scroll: { flex: 1 },
+  content: { flexGrow: 1, padding: 24 },
   form: { width: '100%', maxWidth: 600, alignSelf: 'center', gap: 16 },
   player: { borderRadius: 16, padding: 16, gap: 8 },
   heading: { fontSize: 26, fontWeight: '700' },
   label: { fontSize: 18, fontWeight: '600' },
   message: { fontSize: 16, lineHeight: 24 },
-  input: { minHeight: 56, padding: 16, borderWidth: 1, borderRadius: 12, fontSize: 24 },
+  input: { minHeight: 63, padding: 16, borderWidth: 1, borderRadius: 12, fontSize: 24 },
+  methods: { gap: 12 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  button: { minHeight: 48, padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
+  button: { minHeight: 54, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexGrow: 1 },
+  methodButton: { width: '100%' },
   presets: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   preset: { width: '30%', flexGrow: 1, minHeight: 60, padding: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   preview: { borderRadius: 16, padding: 16, gap: 12 },

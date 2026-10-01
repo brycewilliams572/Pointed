@@ -34,7 +34,11 @@ export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorP
       </Pressable>
       <Modal visible={open} animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={close}>
         <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }]}>
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView
+            alwaysBounceVertical={false}
+            bounces={false}
+            overScrollMode="never"
+            contentContainerStyle={styles.content}>
             <Text accessibilityRole="header" style={[styles.heading, { color: theme.text }]}>Choose a color for {playerLabel}</Text>
             <View style={styles.palette}>
               {CUSTOM_COLORS.map((value) => (

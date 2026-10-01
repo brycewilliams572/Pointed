@@ -57,24 +57,16 @@ export default function NewGameScreen() {
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <GameScreenBackground />
-      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.screen, { paddingTop: Math.max(47, insets.top) + 12 }]}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.screen, { paddingTop: Math.max(47, insets.top) }]}>
       <GameScreenHeader title="New Game" fontsLoaded={theme.fontsLoaded} />
       <KeyboardAvoidingView
         style={styles.screen}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}>
         <View style={styles.toolbar}>
-          <TextInput
-            accessibilityLabel="Game name (optional)"
-            value={name}
-            onChangeText={setName}
-            placeholder="Game Name"
-            placeholderTextColor="#212225"
-            style={[styles.input, theme.fontsLoaded && gameFonts.regular, { color: '#212225', borderColor: theme.textSecondary, backgroundColor: '#FFFFFF' }]}
-          />
           <View style={styles.toolbarRow}>
             <Text accessibilityRole="header" accessibilityLiveRegion="polite" accessibilityLabel={`${players.length} of ${MAX_PLAYERS} players`} style={[styles.label, semibold, { color: theme.text }]}>
-              {players.length} {players.length === 1 ? 'Player' : 'Players'}
+              {players.length} / {MAX_PLAYERS} players
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -82,20 +74,44 @@ export default function NewGameScreen() {
               accessibilityState={{ disabled: players.length >= MAX_PLAYERS }}
               disabled={players.length >= MAX_PLAYERS}
               onPress={addPlayer}
-              style={({ pressed }) => [styles.addTarget, pressed && styles.pressed]}>
-              <View style={[styles.addButton, { backgroundColor: theme.buttonBackground, opacity: players.length >= MAX_PLAYERS ? 0.4 : 1 }]}>
-                <Text style={[styles.label, semibold, { color: theme.buttonText }]}>Add Player</Text>
-              </View>
+              style={({ pressed }) => [
+                styles.addButton,
+                { backgroundColor: theme.buttonBackground, opacity: players.length >= MAX_PLAYERS ? 0.4 : 1 },
+                pressed && styles.pressed,
+              ]}>
+              <Text style={[styles.label, semibold, { color: theme.buttonText }]}>Add Player</Text>
             </Pressable>
           </View>
-          {players.length === MAX_PLAYERS ? (
-            <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>
-              Maximum of 16 players reached. Remove a player to add another.
-            </Text>
-          ) : null}
         </View>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <ScrollView
+          alwaysBounceVertical={false}
+          bounces={false}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
+          overScrollMode="never"
+          style={styles.scroll}
+          contentContainerStyle={styles.content}>
           <View style={styles.form}>
+            <View style={styles.field}>
+              <Text style={[styles.fieldLabel, semibold, { color: theme.text }]}>Game name (optional)</Text>
+              <TextInput
+                accessibilityLabel="Game name (optional)"
+                value={name}
+                onChangeText={setName}
+                placeholder="Game Name"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  theme.fontsLoaded && gameFonts.regular,
+                  { color: theme.text, borderColor: theme.textSecondary, backgroundColor: theme.backgroundElement },
+                ]}
+              />
+            </View>
+            {players.length === MAX_PLAYERS ? (
+              <Text accessibilityLiveRegion="polite" style={[styles.message, { color: theme.textSecondary }]}>
+                Maximum of 16 players reached. Remove a player to add another.
+              </Text>
+            ) : null}
             {players.map((player, index) => (
               <PlayerEditor
                 key={player.id}
@@ -130,15 +146,17 @@ export default function NewGameScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  toolbar: { width: '100%', maxWidth: 648, alignSelf: 'center', paddingHorizontal: 24, paddingTop: 22, paddingBottom: 8, gap: 8 },
-  toolbarRow: { minHeight: 48, paddingHorizontal: 7, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  content: { paddingHorizontal: 24, paddingBottom: 24 },
-  form: { width: '100%', maxWidth: 600, alignSelf: 'center', gap: 21 },
+  scroll: { flex: 1 },
+  toolbar: { width: '100%', maxWidth: 390, minHeight: 80, alignSelf: 'center', paddingHorizontal: 24, paddingVertical: 12 },
+  toolbarRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 16, paddingBottom: 24 },
+  form: { width: '100%', maxWidth: 600, alignSelf: 'center', gap: 16 },
+  field: { gap: 8 },
+  fieldLabel: { fontSize: 18, lineHeight: 22, fontWeight: '600' },
   label: { fontSize: 18, lineHeight: 22, fontWeight: '600' },
   message: { fontSize: 16, lineHeight: 24 },
-  input: { minHeight: 48, borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 18, lineHeight: 22 },
-  addTarget: { minHeight: 48, justifyContent: 'center' },
-  addButton: { minWidth: 129, minHeight: 32, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 9, boxShadow: '5px 5px 0px #2E618C', alignItems: 'center', justifyContent: 'center' },
+  input: { minHeight: 48, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 18, lineHeight: 22 },
+  addButton: { minWidth: 129, minHeight: 56, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 9, boxShadow: '5px 5px 0px #51756E', alignItems: 'center', justifyContent: 'center' },
   button: { minHeight: 56, borderRadius: 9, padding: 16, boxShadow: '5px 5px 0px #51756E', alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.75 },
 });

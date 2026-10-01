@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConfirmActionModal } from '@/components/confirm-action-modal';
+import { GameScreenHeader, gameFonts, useGameScreenAppearance } from '@/components/game-screen-chrome';
 import { UndoRedoControls } from '@/components/undo-redo-controls';
 import { useGame } from '@/context/game-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -24,18 +25,24 @@ export default function HistoryScreen() {
   const { game, events, openGame, loadingGame, scoreError, saving, undo, redo, canUndo, canRedo, restoreHistory } = useGame();
   const [selected, setSelected] = useState<number | null>(null);
   const theme = useTheme();
+  const appearance = useGameScreenAppearance();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const matches = !gameId || game?.id === gameId;
   const point = selected !== null && game && matches ? getHistoryPoint({ game, events }, selected) : null;
   useFocusEffect(useCallback(() => { if (gameId) void openGame(gameId); }, [gameId, openGame]));
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.screen, { paddingTop: Math.max(47, insets.top) }]}>
+        <GameScreenHeader title="Score History" fontsLoaded={appearance.fontsLoaded} />
       <FlatList data={matches ? groupHistory(events) : []} keyExtractor={(group) => group[0].batchId} contentContainerStyle={styles.content}
+        alwaysBounceVertical={false} bounces={false} overScrollMode="never"
         ListHeaderComponent={
           <View style={styles.heading}>
-            <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{matches ? game?.name ?? 'Score History' : 'Score History'}</Text>
-            <Text style={[styles.text, { color: theme.textSecondary }]}>Newest first. Restore a point to return every player&apos;s score to the end of that action. The audit history is kept.</Text>
+            <Text accessibilityRole="header" style={[styles.title, appearance.fontsLoaded && gameFonts.bold, { color: theme.text }]}>{matches ? game?.name ?? 'Score History' : 'Score History'}</Text>
+            <Text style={[styles.text, appearance.fontsLoaded && gameFonts.regular, { color: theme.textSecondary }]}>Newest first. Restore a point to return every player&apos;s score to the end of that action. The audit history is kept.</Text>
             {scoreError ? <Text accessibilityLiveRegion="polite" style={[styles.text, { color: theme.text }]}>{scoreError}</Text> : null}
             <UndoRedoControls canUndo={matches && canUndo} canRedo={matches && canRedo} busy={saving || loadingGame} undo={undo} redo={redo} />
           </View>
@@ -75,7 +82,8 @@ export default function HistoryScreen() {
         actionLabel="Restore" onConfirm={() => restoreHistory(point.endpoint)} onClose={() => setSelected(null)}>
         {game.players.map((player) => <Text key={player.id} style={[styles.text, { color: theme.text }]}>{player.name}: {player.score} → {point.scores.get(player.id)}</Text>)}
       </ConfirmActionModal> : null}
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
