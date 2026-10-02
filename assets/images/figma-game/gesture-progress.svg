@@ -1,0 +1,21 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="180" height="325" viewBox="0 0 180 325" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Accumulated progress" filter="url(#filter0_d_0_18)">
+<path d="M19 19C97.4248 19 161 83.2467 161 162.5C161 241.753 97.4248 306 19 306" stroke="url(#paint0_linear_0_18)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" shape-rendering="crispEdges"/>
+</g>
+<defs>
+<filter id="filter0_d_0_18" x="0" y="0" width="180" height="325" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset/>
+<feGaussianBlur stdDeviation="5"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.84 0 0 0 0 0.12 0 0 0 0 0.15 0 0 0 0.35 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_18"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_18" result="shape"/>
+</filter>
+<linearGradient id="paint0_linear_0_18" x1="66.5" y1="297.5" x2="63.5" y2="-69.5" gradientUnits="userSpaceOnUse">
+<stop offset="0.326923" stop-color="#B91C1C"/>
+<stop offset="1" stop-color="#530D0D" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>

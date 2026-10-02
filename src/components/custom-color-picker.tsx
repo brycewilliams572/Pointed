@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
@@ -11,6 +11,7 @@ export type CustomColorPickerProps = {
   color: string;
   playerLabel: string;
   onChange: (color: string) => void;
+  children?: ReactNode;
 };
 
 // A visual palette on Android/web; iOS resolves to Apple's native picker instead.
@@ -20,7 +21,7 @@ const CUSTOM_COLORS = [0, 85, 170, 255].flatMap((r) =>
   ))
 );
 
-export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorPickerProps) {
+export function CustomColorPicker({ color, playerLabel, onChange, children }: CustomColorPickerProps) {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ export function CustomColorPicker({ color, playerLabel, onChange }: CustomColorP
   return (
     <>
       <Pressable accessibilityRole="button" accessibilityLabel={`Choose custom color for ${playerLabel}`} onPress={() => setOpen(true)} style={[styles.circle, { backgroundColor: color, borderColor: theme.textSecondary }]}>
-        <Text maxFontSizeMultiplier={1} style={[styles.symbol, { color: selected.foreground }]}>+</Text>
+        {children ?? <Text maxFontSizeMultiplier={1} style={[styles.symbol, { color: selected.foreground }]}>+</Text>}
       </Pressable>
       <Modal visible={open} animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={close}>
         <SafeAreaView style={[styles.screen, { backgroundColor: theme.background }]}>

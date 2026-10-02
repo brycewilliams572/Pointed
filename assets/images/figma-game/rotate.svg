@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="rotate-ccw" clip-path="url(#clip0_0_39)">
+<path id="Vector" d="M2.125 5.66667L3.72583 4.06583C5.00719 2.82712 6.7178 2.1317 8.5 2.125C9.76086 2.125 10.9934 2.49889 12.0418 3.19938C13.0901 3.89988 13.9072 4.89551 14.3897 6.06039C14.8722 7.22527 14.9985 8.50707 14.7525 9.7437C14.5065 10.9803 13.8994 12.1162 13.0078 13.0078C12.1162 13.8994 10.9803 14.5065 9.7437 14.7525C8.50707 14.9985 7.22527 14.8722 6.06039 14.3897C4.89551 13.9072 3.89988 13.0901 3.19938 12.0418C2.93825 11.651 2.72251 11.2346 2.5546 10.8006M5.66667 5.66667H2.125V2.125" stroke="black" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+<defs>
+<clipPath id="clip0_0_39">
+<rect width="17" height="17" fill="white"/>
+</clipPath>
+</defs>
+</svg>

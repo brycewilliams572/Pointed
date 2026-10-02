@@ -37,6 +37,8 @@ function RootNavigator() {
           <Stack.Screen name="scoreboard" options={{ title: 'Scoreboard' }} />
           <Stack.Screen name="games" options={{ title: 'Saved Games' }} />
           <Stack.Screen name="history" options={{ title: 'Score History' }} />
+          <Stack.Screen name="results" options={{ title: 'Results' }} />
+          <Stack.Screen name="game-settings" options={{ title: 'Game Settings', presentation: 'modal' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
         </Stack>
       </GameProvider>

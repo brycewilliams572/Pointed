@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter, type Href } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConfirmActionModal } from '@/components/confirm-action-modal';
@@ -35,9 +35,9 @@ export default function GamesScreen() {
           <Text style={[styles.title, appearance.fontsLoaded && gameFonts.bold, { color: theme.text }]}>{item.name ?? 'Untitled game'}</Text>
           <Text style={[styles.text, { color: theme.textSecondary }]}>{item.playerCount} players · {item.status === 'active' ? 'Active' : 'Completed'}</Text>
           <Text style={[styles.text, { color: theme.textSecondary }]}>Last played {new Date(item.updatedAt).toLocaleString()}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Continue ${item.name ?? 'Untitled game'}`} disabled={saving} accessibilityState={{ disabled: saving }}
-            onPress={() => router.push({ pathname: '/scoreboard', params: { gameId: item.id } })} style={[styles.button, { backgroundColor: theme.text }]}>
-            <Text style={[styles.text, { color: theme.background }]}>Continue Game</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${item.status === 'completed' ? 'View results for' : 'Continue'} ${item.name ?? 'Untitled game'}`} disabled={saving} accessibilityState={{ disabled: saving }}
+            onPress={() => router.push((item.status === 'completed' ? { pathname: '/results', params: { gameId: item.id } } : { pathname: '/scoreboard', params: { gameId: item.id } }) as Href)} style={[styles.button, { backgroundColor: theme.text }]}>
+            <Text style={[styles.text, { color: theme.background }]}>{item.status === 'completed' ? 'View Results' : 'Continue Game'}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${item.name ?? 'Untitled game'}`} accessibilityHint="Asks for confirmation before permanently deleting this game."
             disabled={saving} accessibilityState={{ disabled: saving }} onPress={() => setSelected(item)} style={[styles.button, styles.delete]}>

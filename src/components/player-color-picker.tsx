@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CustomColorPicker } from '@/components/custom-color-picker';
@@ -28,14 +29,18 @@ export function PlayerColorPicker({ color, playerLabel, onChange, centered = fal
           ) : null}
         </Pressable>
       ))}
-      <CustomColorPicker color={color} playerLabel={playerLabel} onChange={onChange} />
+      <CustomColorPicker color={color} playerLabel={playerLabel} onChange={onChange}>
+        <Image source={require('../../assets/images/figma-game/custom-color.png')} accessible={false}
+          contentFit="contain" style={styles.customImage} />
+      </CustomColorPicker>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  centered: { justifyContent: 'center', maxWidth: 272, alignSelf: 'center' },
+  centered: { justifyContent: 'center', width: 272, alignSelf: 'center' },
   circle: { width: 48, height: 48, borderWidth: 1, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   symbol: { fontSize: 24, fontWeight: '700' },
+  customImage: { width: 48, height: 48 },
 });
